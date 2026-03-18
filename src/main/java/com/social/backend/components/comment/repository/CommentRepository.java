@@ -1,0 +1,39 @@
+package com.social.backend.components.comment.repository;
+
+
+import com.social.backend.components.comment.entity.Comment;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
+
+public interface CommentRepository extends JpaRepository<Comment, Long> {
+
+    List<Comment> findByPostIdOrderByCreatedAtAsc(Long postId);
+
+    // Versione non paginata
+    List<Comment> findByPostId(Long postId);
+
+    // Versione paginata
+    Page<Comment> findByPostId(Long postId, Pageable pageable);
+
+    // conta commenti per post
+    int countByPostId(Long postId);
+
+    @Modifying
+    @Transactional
+    @Query("DELETE FROM Comment c WHERE c.post.id = :postId")
+    void deleteByPostId(@Param("postId") Long postId);
+
+    @Modifying
+    @Transactional
+    @Query("DELETE FROM Comment c WHERE c.author.id = :authorId")
+    void deleteByAuthorId(@Param("authorId") Long authorId);
+
+
+}
