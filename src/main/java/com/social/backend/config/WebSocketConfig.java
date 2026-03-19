@@ -22,7 +22,7 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
                 .setAllowedOriginPatterns(
                         "http://localhost:3000",
                         "http://localhost:5173",
-                        "https://social-media-frontend.vercel.app"
+                        "https://social-media-frontend-mu-neon.vercel.app"
                 )
                 .withSockJS();
 

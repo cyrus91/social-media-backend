@@ -81,7 +81,7 @@ public class SecurityConfig {
         configuration.setAllowedOrigins(List.of(
                 "http://localhost:5173",
                 "http://localhost:3000",
-                "https://social-media-frontend.vercel.app"
+                "https://social-media-frontend-mu-neon.vercel.app"
         ));
 
         configuration.setAllowedMethods(List.of(
