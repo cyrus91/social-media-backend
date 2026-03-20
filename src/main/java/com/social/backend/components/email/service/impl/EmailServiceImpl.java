@@ -5,26 +5,29 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 
-import java.util.Map;
 import java.util.List;
+import java.util.Map;
 
 @Service
 public class EmailServiceImpl implements EmailService {
 
     private final WebClient webClient;
 
-    @Value("${resend.api-key}")
+    @Value("${brevo.api-key}")
     private String apiKey;
 
-    @Value("${resend.from-email:onboarding@resend.dev}")
+    @Value("${brevo.from-email:noreply@socialapp.com}")
     private String fromEmail;
+
+    @Value("${brevo.from-name:Social App}")
+    private String fromName;
 
     @Value("${app.frontend-url}")
     private String frontendUrl;
 
     public EmailServiceImpl(WebClient.Builder webClientBuilder) {
         this.webClient = webClientBuilder
-                .baseUrl("https://api.resend.com")
+                .baseUrl("https://api.brevo.com/v3")
                 .build();
     }
 
@@ -61,16 +64,16 @@ public class EmailServiceImpl implements EmailService {
                 """.formatted(username, verificationLink);
 
         Map<String, Object> emailRequest = Map.of(
-                "from", fromEmail,
-                "to", List.of(toEmail),
+                "sender", Map.of("name", fromName, "email", fromEmail),
+                "to", List.of(Map.of("email", toEmail, "name", username)),
                 "subject", "Verifica il tuo account Social App",
-                "html", htmlContent
+                "htmlContent", htmlContent
         );
 
         try {
             webClient.post()
-                    .uri("/emails")
-                    .header("Authorization", "Bearer " + apiKey)
+                    .uri("/smtp/email")
+                    .header("api-key", apiKey)
                     .header("Content-Type", "application/json")
                     .bodyValue(emailRequest)
                     .retrieve()
