@@ -42,7 +42,7 @@ public class User {
     private String avatarUrl;
 
     @Setter
-    @Column(name = "email_verified", nullable = false)
+    @Column(name = "email_verified", nullable = false, columnDefinition = "boolean default false")
     private boolean emailVerified = false;
 
     @Setter
