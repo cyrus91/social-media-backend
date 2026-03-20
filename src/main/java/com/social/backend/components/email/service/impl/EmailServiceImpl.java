@@ -1,34 +1,25 @@
 package com.social.backend.components.email.service.impl;
 
 import com.social.backend.components.email.service.EmailService;
+import jakarta.mail.internet.MimeMessage;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
-import org.springframework.web.reactive.function.client.WebClient;
-
-import java.util.List;
-import java.util.Map;
 
 @Service
 public class EmailServiceImpl implements EmailService {
 
-    private final WebClient webClient;
+    private final JavaMailSender mailSender;
 
-    @Value("${brevo.api-key}")
-    private String apiKey;
-
-    @Value("${brevo.from-email:noreply@socialapp.com}")
+    @Value("${spring.mail.username}")
     private String fromEmail;
-
-    @Value("${brevo.from-name:Social App}")
-    private String fromName;
 
     @Value("${app.frontend-url}")
     private String frontendUrl;
 
-    public EmailServiceImpl(WebClient.Builder webClientBuilder) {
-        this.webClient = webClientBuilder
-                .baseUrl("https://api.brevo.com/v3")
-                .build();
+    public EmailServiceImpl(JavaMailSender mailSender) {
+        this.mailSender = mailSender;
     }
 
     @Override
@@ -63,23 +54,16 @@ public class EmailServiceImpl implements EmailService {
                 </div>
                 """.formatted(username, verificationLink);
 
-        Map<String, Object> emailRequest = Map.of(
-                "sender", Map.of("name", fromName, "email", fromEmail),
-                "to", List.of(Map.of("email", toEmail, "name", username)),
-                "subject", "Verifica il tuo account Social App",
-                "htmlContent", htmlContent
-        );
-
         try {
-            webClient.post()
-                    .uri("/smtp/email")
-                    .header("api-key", apiKey)
-                    .header("Content-Type", "application/json")
-                    .bodyValue(emailRequest)
-                    .retrieve()
-                    .bodyToMono(Map.class)
-                    .block();
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
 
+            helper.setFrom(fromEmail, "Social App");
+            helper.setTo(toEmail);
+            helper.setSubject("Verifica il tuo account Social App");
+            helper.setText(htmlContent, true);
+
+            mailSender.send(message);
             System.out.println("✅ Email di verifica inviata a: " + toEmail);
         } catch (Exception e) {
             System.err.println("❌ Errore invio email a " + toEmail + ": " + e.getMessage());
