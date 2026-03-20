@@ -6,12 +6,10 @@ import com.social.backend.components.auth.dto.RegisterRequest;
 import com.social.backend.components.auth.dto.TokenRefreshResponse;
 
 public interface AuthService {
-
     LoginResponse login(LoginRequest request);
-
     LoginResponse register(RegisterRequest request);
-
     TokenRefreshResponse refreshToken(String refreshToken);
-
     void logout(Long userId);
+    void verifyEmail(String token);
+    void resendVerification(String email);
 }

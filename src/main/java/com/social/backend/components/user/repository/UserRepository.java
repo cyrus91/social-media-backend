@@ -14,22 +14,15 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     Optional<User> findByEmail(String email);
 
+    Optional<User> findByVerificationToken(String verificationToken);
+
     boolean existsByUsername(String username);
 
     boolean existsByEmail(String email);
 
-    // METODI PER LA RICERCA
-
-    /**
-     * Ricerca utenti per username (case-insensitive, parziale)
-     */
     @Query("SELECT u FROM User u WHERE LOWER(u.username) LIKE LOWER(CONCAT('%', :query, '%'))")
     List<User> searchByUsername(@Param("query") String query);
 
-    /**
-     * Ricerca utenti per username O email (case-insensitive, parziale)
-     * Limita a 20 risultati
-     */
     @Query("SELECT u FROM User u WHERE LOWER(u.username) LIKE LOWER(CONCAT('%', :query, '%')) " +
             "OR LOWER(u.email) LIKE LOWER(CONCAT('%', :query, '%')) " +
             "ORDER BY u.username ASC")

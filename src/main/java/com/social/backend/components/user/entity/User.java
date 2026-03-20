@@ -17,7 +17,6 @@ import java.time.LocalDateTime;
         })
 public class User {
 
-    // Getter e Setter
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -42,6 +41,18 @@ public class User {
     @Column(name = "avatar_url", length = 500)
     private String avatarUrl;
 
+    @Setter
+    @Column(name = "email_verified", nullable = false)
+    private boolean emailVerified = false;
+
+    @Setter
+    @Column(name = "verification_token", length = 255)
+    private String verificationToken;
+
+    @Setter
+    @Column(name = "verification_token_expiry")
+    private LocalDateTime verificationTokenExpiry;
+
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 
@@ -58,6 +69,6 @@ public class User {
         this.passwordHash = passwordHash;
         this.bio = bio;
         this.avatarUrl = avatarUrl;
+        this.emailVerified = false;
     }
-
 }
