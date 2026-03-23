@@ -18,8 +18,10 @@ public class UserDetailsServiceImpl implements UserDetailsService {
 
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-        User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new UsernameNotFoundException("Utente non trovato: " + username));
+        // Trim + case-insensitive: cerca l'utente ignorando maiuscole/minuscole e spazi
+        String cleanUsername = username.trim();
+        User user = userRepository.findByUsernameIgnoreCase(cleanUsername)
+                .orElseThrow(() -> new UsernameNotFoundException("Utente non trovato: " + cleanUsername));
 
         return new UserDetailsImpl(user);
     }

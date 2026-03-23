@@ -18,7 +18,6 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.DisabledException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -54,8 +53,11 @@ public class AuthServiceImpl implements AuthService {
     @Override
     public LoginResponse login(LoginRequest request) {
         try {
-            // Recupera utente prima di autenticare per controllare verifica email
-            User user = userRepository.findByUsername(request.getUsername())
+            // Trim spazi e lowercase per il lookup
+            String cleanUsername = request.getUsername().trim();
+
+            // Recupera utente case-insensitive
+            User user = userRepository.findByUsernameIgnoreCase(cleanUsername)
                     .orElseThrow(() -> new BadCredentialsException("Username o password errati"));
 
             // Controlla se email è verificata
@@ -63,28 +65,25 @@ public class AuthServiceImpl implements AuthService {
                 throw new DisabledException("EMAIL_NOT_VERIFIED");
             }
 
-            // Autentica l'utente
-            Authentication authentication = authenticationManager.authenticate(
+            // Autentica con l'username reale (quello salvato nel DB)
+            authenticationManager.authenticate(
                     new UsernamePasswordAuthenticationToken(
-                            request.getUsername(),
+                            user.getUsername(), // usa username reale dal DB
                             request.getPassword()
                     )
             );
 
-            // Genera token JWT
-            String token = jwtUtil.generateToken(request.getUsername());
+            // Genera token JWT con username reale
+            String token = jwtUtil.generateToken(user.getUsername());
 
             // Genera refresh token
             RefreshToken refreshToken = refreshTokenService.createRefreshToken(user.getId());
-
-            // Crea UserResponse
-            UserResponse userResponse = buildUserResponse(user);
 
             return LoginResponse.builder()
                     .token(token)
                     .refreshToken(refreshToken.getToken())
                     .type("Bearer")
-                    .user(userResponse)
+                    .user(buildUserResponse(user))
                     .build();
 
         } catch (BadCredentialsException | DisabledException e) {
@@ -100,8 +99,8 @@ public class AuthServiceImpl implements AuthService {
         String username = request.getUsername().trim();
         String email = request.getEmail().trim().toLowerCase();
 
-        // Verifica duplicati
-        if (userRepository.findByUsername(username).isPresent()) {
+        // Verifica duplicati (case-insensitive)
+        if (userRepository.findByUsernameIgnoreCase(username).isPresent()) {
             throw new DuplicateResourceException("Username già esistente: " + username);
         }
         if (userRepository.findByEmail(email).isPresent()) {
@@ -129,7 +128,6 @@ public class AuthServiceImpl implements AuthService {
         // Invia email di verifica
         emailService.sendVerificationEmail(email, username, verificationToken);
 
-        // Restituisce risposta senza token (l'utente deve prima verificare l'email)
         UserResponse userResponse = buildUserResponse(savedUser);
 
         return LoginResponse.builder()
@@ -154,13 +152,10 @@ public class AuthServiceImpl implements AuthService {
             throw new RuntimeException("TOKEN_EXPIRED");
         }
 
-        // Marca come verificato e rimuovi il token
         user.setEmailVerified(true);
         user.setVerificationToken(null);
         user.setVerificationTokenExpiry(null);
         userRepository.save(user);
-
-        System.out.println("✅ Email verificata per utente: " + user.getUsername());
     }
 
     @Override
@@ -173,7 +168,6 @@ public class AuthServiceImpl implements AuthService {
             throw new RuntimeException("Email già verificata");
         }
 
-        // Genera nuovo token
         String newToken = UUID.randomUUID().toString();
         user.setVerificationToken(newToken);
         user.setVerificationTokenExpiry(LocalDateTime.now().plusHours(24));

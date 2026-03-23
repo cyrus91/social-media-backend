@@ -16,6 +16,10 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     Optional<User> findByVerificationToken(String verificationToken);
 
+    // Case-insensitive login
+    @Query("SELECT u FROM User u WHERE LOWER(u.username) = LOWER(:username)")
+    Optional<User> findByUsernameIgnoreCase(@Param("username") String username);
+
     boolean existsByUsername(String username);
 
     boolean existsByEmail(String email);
