@@ -279,17 +279,17 @@ public class PostServiceImpl implements PostService {
     @Override
     @Transactional
     public void removeImageFromPost(Long userId, Long postId, int imageIndex) {
-        // Trova post
         Post post = postRepository.findById(postId)
                 .orElseThrow(() -> new ResourceNotFoundException("Post non trovato"));
 
-        // Verifica ownership
         if (!post.getAuthor().getId().equals(userId)) {
             throw new ForbiddenException("Non puoi modificare un post di un altro utente");
         }
 
-        // Trova immagine per indice
-        List<PostImage> images = post.getImages();
+        // Ordina per displayOrder — stesso ordine usato dal frontend
+        List<PostImage> images = post.getImages().stream()
+                .sorted(Comparator.comparingInt(PostImage::getDisplayOrder))
+                .collect(Collectors.toList());
 
         if (imageIndex < 0 || imageIndex >= images.size()) {
             throw new IllegalArgumentException("Indice immagine non valido");
@@ -297,26 +297,26 @@ public class PostServiceImpl implements PostService {
 
         PostImage imageToRemove = images.get(imageIndex);
 
-        // Estrai public_id (gestisce sia URL completi che public_id diretti)
         String imageUrl = imageToRemove.getImageUrl();
         String publicId = extractPublicIdFromUrl(imageUrl);
 
-        // Elimina da Cloudinary
         try {
             System.out.println("🗑️ Eliminazione immagine: " + publicId);
             storageService.delete(publicId);
-            System.out.println(" Immagine eliminata da storage");
+            System.out.println("✅ Immagine eliminata da storage");
         } catch (Exception e) {
             System.err.println("⚠️ Errore eliminazione da storage: " + e.getMessage());
-            // Continua per rimuovere dal DB
         }
 
-        // Rimuovi dal database
-        images.remove(imageIndex);
+        // Rimuovi dalla lista originale (non quella ordinata)
+        post.getImages().remove(imageToRemove);
 
-        // Riordina gli indici
-        for (int i = 0; i < images.size(); i++) {
-            images.get(i).setDisplayOrder(i);
+        // Riordina i displayOrder
+        List<PostImage> remaining = post.getImages().stream()
+                .sorted(Comparator.comparingInt(PostImage::getDisplayOrder))
+                .collect(Collectors.toList());
+        for (int i = 0; i < remaining.size(); i++) {
+            remaining.get(i).setDisplayOrder(i);
         }
 
         postRepository.save(post);
