@@ -204,16 +204,16 @@ public class PostController {
 // POST IMAGE MANAGEMENT
 // ============================================
 
-    @DeleteMapping("/{postId}/images/{imageIndex}")
+    @DeleteMapping("/{postId}/images/{imageId}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    @Operation(summary = "Rimuovi immagine da post")
+    @Operation(summary = "Rimuovi immagine da post", description = "Usa l'ID dell'immagine (campo 'id' in 'images') per identificarla in modo stabile")
     public void removeImage(
             @AuthenticationPrincipal UserDetailsImpl userDetails,
             @PathVariable Long postId,
-            @PathVariable int imageIndex) {
+            @PathVariable Long imageId) {
 
         User currentUser = userDetails.getUser();
-        postService.removeImageFromPost(currentUser.getId(), postId, imageIndex);
+        postService.removeImageFromPost(currentUser.getId(), postId, imageId);
     }
 
     @PostMapping(value = "/{postId}/images", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)

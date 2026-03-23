@@ -278,7 +278,7 @@ public class PostServiceImpl implements PostService {
 
     @Override
     @Transactional
-    public void removeImageFromPost(Long userId, Long postId, int imageIndex) {
+    public void removeImageFromPost(Long userId, Long postId, Long imageId) {
         Post post = postRepository.findById(postId)
                 .orElseThrow(() -> new ResourceNotFoundException("Post non trovato"));
 
@@ -286,16 +286,11 @@ public class PostServiceImpl implements PostService {
             throw new ForbiddenException("Non puoi modificare un post di un altro utente");
         }
 
-        // Ordina per displayOrder — stesso ordine usato dal frontend
-        List<PostImage> images = post.getImages().stream()
-                .sorted(Comparator.comparingInt(PostImage::getDisplayOrder))
-                .collect(Collectors.toList());
-
-        if (imageIndex < 0 || imageIndex >= images.size()) {
-            throw new IllegalArgumentException("Indice immagine non valido");
-        }
-
-        PostImage imageToRemove = images.get(imageIndex);
+        // Trova l'immagine per ID (stabile, non per indice posizionale)
+        PostImage imageToRemove = post.getImages().stream()
+                .filter(img -> img.getId().equals(imageId))
+                .findFirst()
+                .orElseThrow(() -> new ResourceNotFoundException("Immagine non trovata con ID: " + imageId));
 
         String imageUrl = imageToRemove.getImageUrl();
         String publicId = extractPublicIdFromUrl(imageUrl);
@@ -308,10 +303,10 @@ public class PostServiceImpl implements PostService {
             System.err.println("⚠️ Errore eliminazione da storage: " + e.getMessage());
         }
 
-        // Rimuovi dalla lista originale (non quella ordinata)
+        // Rimuovi dalla lista (orphanRemoval = true farà il DELETE)
         post.getImages().remove(imageToRemove);
 
-        // Riordina i displayOrder
+        // Riordina i displayOrder rimanenti in modo sicuro
         List<PostImage> remaining = post.getImages().stream()
                 .sorted(Comparator.comparingInt(PostImage::getDisplayOrder))
                 .collect(Collectors.toList());
@@ -482,10 +477,19 @@ public class PostServiceImpl implements PostService {
         boolean liked = currentUserId != null &&
                 likeRepository.existsByUserIdAndPostId(currentUserId, post.getId());
 
-        //  Estrai URLs da PostImage entities
-        List<String> imageUrls = post.getImages().stream()
-                .sorted(Comparator.comparingInt(PostImage::getDisplayOrder)) // ORDINA
-                .map(PostImage::getImageUrl)
+        //  Estrai PostImageDto da PostImage entities (con ID stabile per il frontend)
+        List<com.social.backend.components.post.dto.PostImageDto> imageDtos = post.getImages().stream()
+                .sorted(Comparator.comparingInt(PostImage::getDisplayOrder))
+                .map(img -> com.social.backend.components.post.dto.PostImageDto.builder()
+                        .id(img.getId())
+                        .imageUrl(img.getImageUrl())
+                        .displayOrder(img.getDisplayOrder())
+                        .build())
+                .toList();
+
+        //  Estrai URLs per retrocompatibilità
+        List<String> imageUrls = imageDtos.stream()
+                .map(com.social.backend.components.post.dto.PostImageDto::getImageUrl)
                 .toList();
 
         //  RETROCOMPATIBILITÀ: Se vuoto, usa imageUrl deprecato
@@ -499,8 +503,9 @@ public class PostServiceImpl implements PostService {
         return PostResponse.builder()
                 .id(post.getId())
                 .content(post.getContent())
-                .imageUrls(imageUrls)  //  LISTA COMPLETA
-                .imageUrl(imageUrls.isEmpty() ? null : imageUrls.get(0))  //  Prima immagine
+                .images(imageDtos)             //  OGGETTI COMPLETI CON ID
+                .imageUrls(imageUrls)          //  RETROCOMPATIBILITÀ
+                .imageUrl(imageUrls.isEmpty() ? null : imageUrls.get(0))
                 .authorId(post.getAuthor().getId())
                 .authorUsername(post.getAuthor().getUsername())
                 .authorAvatarUrl(post.getAuthor().getAvatarUrl())

@@ -16,7 +16,10 @@ public class PostResponse {
     private Long id;
     private String content;
 
-    // NUOVO: Lista di immagini
+    // NUOVO: Lista di immagini con ID (usare per operazioni di modifica/eliminazione)
+    private List<PostImageDto> images;
+
+    // RETROCOMPATIBILITÀ: Lista di sole URL
     private List<String> imageUrls;
 
     // DEPRECATO: Mantieni per retrocompatibilità frontend

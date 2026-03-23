@@ -35,6 +35,6 @@ public interface PostService {
 
     PostResponse createWithImages(Long userId, CreatePostRequest request, List<MultipartFile> images);
 
-    void removeImageFromPost(Long userId, Long postId, int imageIndex);
+    void removeImageFromPost(Long userId, Long postId, Long imageId);
     PostResponse addImagesToPost(Long userId, Long postId, List<MultipartFile> images);
 }
