@@ -167,6 +167,17 @@ public class PostController {
         return response;
     }
 
+    @GetMapping("/hashtag/{tag}")
+    @Operation(summary = "Cerca post per hashtag")
+    public Page<PostResponse> searchByHashtag(
+            @PathVariable String tag,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
+            @AuthenticationPrincipal UserDetailsImpl userDetails) {
+        Long currentUserId = userDetails != null ? userDetails.getUser().getId() : null;
+        return postService.searchByHashtag(tag, page, size, currentUserId);
+    }
+
     // ============================================
     // UPDATE
     // ============================================

@@ -23,6 +23,9 @@ public interface PostService {
     Page<PostResponse> getFeed(Long userId, int page, int size);
     Page<PostResponse> getExplorePosts(Long currentUserId, int page, int size);
 
+    // SEARCH
+    Page<PostResponse> searchByHashtag(String tag, int page, int size, Long currentUserId);
+
     // UPDATE
     PostResponse update(Long currentUserId, Long postId, UpdatePostRequest request);
     PostResponse addImageToPost(Long userId, Long postId, MultipartFile image);

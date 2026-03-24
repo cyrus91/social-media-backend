@@ -256,6 +256,15 @@ public class PostServiceImpl implements PostService {
         return posts.map(post -> mapToResponse(post, currentUserId));
     }
 
+    @Override
+    public Page<PostResponse> searchByHashtag(String tag, int page, int size, Long currentUserId) {
+        // Rimuovi il # se presente (es. "#napoli" → "napoli")
+        String cleanTag = tag.startsWith("#") ? tag.substring(1) : tag;
+        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
+        return postRepository.findByHashtag(cleanTag, pageable)
+                .map(post -> mapToResponse(post, currentUserId));
+    }
+
     // ============================================
     // UPDATE
     // ============================================

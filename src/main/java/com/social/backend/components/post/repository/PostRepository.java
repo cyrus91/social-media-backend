@@ -83,4 +83,10 @@ public interface PostRepository extends JpaRepository<Post, Long> {
     @Transactional
     @Query("DELETE FROM Post p WHERE p.author.id = :authorId")
     void deleteByAuthorId(@Param("authorId") Long authorId);
+
+    /**
+     * Ricerca post per hashtag nel contenuto (case-insensitive)
+     */
+    @Query("SELECT p FROM Post p JOIN FETCH p.author WHERE LOWER(p.content) LIKE LOWER(CONCAT('%#', :tag, '%')) ORDER BY p.createdAt DESC")
+    Page<Post> findByHashtag(@Param("tag") String tag, Pageable pageable);
 }
