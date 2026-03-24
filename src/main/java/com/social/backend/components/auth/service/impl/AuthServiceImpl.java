@@ -203,6 +203,8 @@ public class AuthServiceImpl implements AuthService {
         userResponse.setBio(user.getBio());
         userResponse.setAvatarUrl(user.getAvatarUrl());
         userResponse.setCreatedAt(user.getCreatedAt());
+        userResponse.setRole(user.getRole() != null ? user.getRole() : "USER");
+        userResponse.setBanned(user.isBanned());
         return userResponse;
     }
 }
