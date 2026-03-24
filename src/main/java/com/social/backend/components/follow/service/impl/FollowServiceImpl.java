@@ -147,8 +147,10 @@ public class FollowServiceImpl implements FollowService {
         FollowResponse response = new FollowResponse();
         response.setFollowerId(follow.getFollowerId());
         response.setFollowerUsername(follow.getFollower().getUsername());
+        response.setFollowerAvatarUrl(follow.getFollower().getAvatarUrl());
         response.setFollowedId(follow.getFollowedId());
         response.setFollowedUsername(follow.getFollowed().getUsername());
+        response.setFollowedAvatarUrl(follow.getFollowed().getAvatarUrl());
         response.setCreatedAt(follow.getCreatedAt());
         return response;
     }
