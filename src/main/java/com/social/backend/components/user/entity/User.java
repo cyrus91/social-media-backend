@@ -53,14 +53,21 @@ public class User {
     @Column(name = "verification_token_expiry")
     private LocalDateTime verificationTokenExpiry;
 
+    @Setter
+    @Column(name = "role", nullable = false, length = 20, columnDefinition = "varchar(20) default 'USER'")
+    private String role = "USER";
+
+    @Setter
+    @Column(name = "banned", nullable = false, columnDefinition = "boolean default false")
+    private boolean banned = false;
+
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 
     @PrePersist
     protected void onCreate() {
-        if (createdAt == null) {
-            createdAt = LocalDateTime.now();
-        }
+        if (createdAt == null) createdAt = LocalDateTime.now();
+        if (role == null) role = "USER";
     }
 
     public User(String username, String email, String passwordHash, String bio, String avatarUrl) {
@@ -70,5 +77,7 @@ public class User {
         this.bio = bio;
         this.avatarUrl = avatarUrl;
         this.emailVerified = false;
+        this.role = "USER";
+        this.banned = false;
     }
 }

@@ -282,6 +282,8 @@ public class UserServiceImpl implements UserService {
                             .followerCount(followerCount != null ? followerCount.intValue() : 0)
                             .followingCount(followingCount != null ? followingCount.intValue() : 0)
                             .postCount(postCount != null ? postCount.intValue() : 0)
+                            .role(user.getRole())
+                            .banned(user.isBanned())
                             .build();
                 })
                 .collect(Collectors.toList());

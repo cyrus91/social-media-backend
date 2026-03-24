@@ -2,7 +2,6 @@ package com.social.backend.components.user.dto;
 
 import lombok.Builder;
 import lombok.Data;
-import lombok.Getter;
 
 import java.time.LocalDateTime;
 
@@ -19,8 +18,12 @@ public class UserResponse {
     private Integer followerCount;
     private Integer followingCount;
     private Integer postCount;
+    private String role;
+    private boolean banned;
 
-    public UserResponse(Long id, String username, String email, String bio, String avatarUrl, LocalDateTime createdAt, Integer followerCount, Integer followingCount, Integer postCount) {
+    public UserResponse(Long id, String username, String email, String bio, String avatarUrl,
+                        LocalDateTime createdAt, Integer followerCount, Integer followingCount,
+                        Integer postCount, String role, boolean banned) {
         this.id = id;
         this.username = username;
         this.email = email;
@@ -30,10 +33,9 @@ public class UserResponse {
         this.followerCount = followerCount;
         this.followingCount = followingCount;
         this.postCount = postCount;
-
+        this.role = role;
+        this.banned = banned;
     }
 
-    public UserResponse() {
-
-    }
+    public UserResponse() {}
 }

@@ -39,6 +39,9 @@ public class SecurityConfig {
                         // Auth endpoints
                         .requestMatchers("/api/auth/**").permitAll()
 
+                        // Admin endpoints - solo ROLE_ADMIN
+                        .requestMatchers("/api/admin/**").hasRole("ADMIN")
+
                         // AI endpoints -> protetti
                         .requestMatchers("/api/ai/**").authenticated()
 

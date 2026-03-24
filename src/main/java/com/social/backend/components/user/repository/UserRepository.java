@@ -31,4 +31,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
             "OR LOWER(u.email) LIKE LOWER(CONCAT('%', :query, '%')) " +
             "ORDER BY u.username ASC")
     List<User> searchByUsernameOrEmail(@Param("query") String query);
+
+    long countByBanned(boolean banned);
+    long countByRole(String role);
 }

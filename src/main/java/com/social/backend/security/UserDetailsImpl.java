@@ -2,10 +2,11 @@ package com.social.backend.security;
 
 import com.social.backend.components.user.entity.User;
 import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
 import java.util.Collection;
-import java.util.Collections;
+import java.util.List;
 
 public class UserDetailsImpl implements UserDetails {
 
@@ -17,12 +18,13 @@ public class UserDetailsImpl implements UserDetails {
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        return Collections.emptyList();
+        String role = user.getRole() != null ? user.getRole() : "USER";
+        return List.of(new SimpleGrantedAuthority("ROLE_" + role));
     }
 
     @Override
     public String getPassword() {
-        return user.getPasswordHash();  // <-- usa passwordHash!
+        return user.getPasswordHash();
     }
 
     @Override
@@ -37,7 +39,8 @@ public class UserDetailsImpl implements UserDetails {
 
     @Override
     public boolean isAccountNonLocked() {
-        return true;
+        // Utenti bannati non possono accedere
+        return !user.isBanned();
     }
 
     @Override
