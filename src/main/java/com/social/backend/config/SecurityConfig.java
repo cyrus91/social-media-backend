@@ -39,11 +39,14 @@ public class SecurityConfig {
                         // Auth endpoints
                         .requestMatchers("/api/auth/**").permitAll()
 
+                        // AI endpoints -> protetti
+                        .requestMatchers("/api/ai/**").authenticated()
+
                         // Admin endpoints - solo ROLE_ADMIN
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
 
-                        // AI endpoints -> protetti
-                        .requestMatchers("/api/ai/**").authenticated()
+                        // Messaggi - solo autenticati
+                        .requestMatchers("/api/messages/**").authenticated()
 
                         // Public GET endpoints
                         .requestMatchers(HttpMethod.GET, "/api/users/**").permitAll()

@@ -1,35 +1,27 @@
 package com.social.backend.components.notification.controller;
 
 import com.social.backend.components.notification.dto.NotificationResponse;
-import org.springframework.messaging.handler.annotation.MessageMapping;
-import org.springframework.messaging.handler.annotation.SendTo;
-import org.springframework.messaging.simp.SimpMessagingTemplate;
+import com.social.backend.config.RedisPubSubService;
 import org.springframework.stereotype.Controller;
 
 @Controller
 public class NotificationWebSocketController {
 
-    private final SimpMessagingTemplate messagingTemplate;
+    private final RedisPubSubService redisPubSubService;
 
-    public NotificationWebSocketController(SimpMessagingTemplate messagingTemplate) {
-        this.messagingTemplate = messagingTemplate;
+    public NotificationWebSocketController(RedisPubSubService redisPubSubService) {
+        this.redisPubSubService = redisPubSubService;
     }
 
     /**
-     * Invia una notifica real-time a un utente specifico
+     * Invia una notifica real-time a un utente specifico via Redis Pub/Sub.
+     * Il messaggio viene distribuito a tutte le istanze backend.
      */
     public void sendNotificationToUser(Long userId, NotificationResponse notification) {
-        // Invia al topic /queue/notifications/{userId}
-        messagingTemplate.convertAndSend(
-                "/queue/notifications/" + userId,
-                notification
-        );
+        redisPubSubService.publish("/queue/notifications/" + userId, notification);
     }
 
-    /**
-     * Broadcast di una notifica a tutti gli utenti connessi (opzionale)
-     */
     public void broadcastNotification(NotificationResponse notification) {
-        messagingTemplate.convertAndSend("/topic/notifications", notification);
+        redisPubSubService.publish("/topic/notifications", notification);
     }
 }
