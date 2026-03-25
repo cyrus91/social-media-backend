@@ -20,10 +20,11 @@ public class UserResponse {
     private Integer postCount;
     private String role;
     private boolean banned;
+    private boolean emailVerified;
 
     public UserResponse(Long id, String username, String email, String bio, String avatarUrl,
                         LocalDateTime createdAt, Integer followerCount, Integer followingCount,
-                        Integer postCount, String role, boolean banned) {
+                        Integer postCount, String role, boolean banned, boolean emailVerified) {
         this.id = id;
         this.username = username;
         this.email = email;
@@ -35,6 +36,7 @@ public class UserResponse {
         this.postCount = postCount;
         this.role = role;
         this.banned = banned;
+        this.emailVerified = emailVerified;
     }
 
     public UserResponse() {}
