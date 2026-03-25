@@ -174,6 +174,7 @@ public class AdminController {
                 .postCount(postCount != null ? postCount : 0)
                 .role(user.getRole())
                 .banned(user.isBanned())
+                .emailVerified(user.isEmailVerified())
                 .build();
     }
 }
