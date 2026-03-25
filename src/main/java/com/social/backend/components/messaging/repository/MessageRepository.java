@@ -10,10 +10,14 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
+
 @Repository
 public interface MessageRepository extends JpaRepository<Message, Long> {
 
-    Page<Message> findByConversationIdOrderByCreatedAtAsc(Long conversationId, Pageable pageable);
+    // Tutti i messaggi di una conversazione ordinati per data
+    @Query("SELECT m FROM Message m WHERE m.conversation.id = :conversationId ORDER BY m.createdAt ASC")
+    List<Message> findAllByConversationId(@Param("conversationId") Long conversationId);
 
     // Conta messaggi non letti per un utente in una conversazione
     @Query("SELECT COUNT(m) FROM Message m WHERE m.conversation.id = :convId " +

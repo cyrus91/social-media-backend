@@ -7,7 +7,6 @@ import com.social.backend.components.messaging.service.MessagingService;
 import com.social.backend.components.user.entity.User;
 import com.social.backend.config.RedisPubSubService;
 import com.social.backend.security.UserDetailsImpl;
-import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -48,13 +47,11 @@ public class MessagingController {
     }
 
     @GetMapping("/conversations/{conversationId}/messages")
-    public Page<MessageDTO> getMessages(
+    public List<MessageDTO> getMessages(
             @PathVariable Long conversationId,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "30") int size,
             @AuthenticationPrincipal UserDetailsImpl userDetails) {
         Long userId = userDetails.getUser().getId();
-        Page<MessageDTO> messages = messagingService.getMessages(conversationId, userId, page, size);
+        List<MessageDTO> messages = messagingService.getMessages(conversationId, userId);
         markReadAndNotify(conversationId, userId);
         return messages;
     }
@@ -99,14 +96,6 @@ public class MessagingController {
         markReadAndNotify(conversationId, userDetails.getUser().getId());
     }
 
-    // ============================================
-    // HELPERS
-    // ============================================
-
-    /**
-     * Pubblica il messaggio al destinatario via Redis.
-     * Usa ConversationRepository direttamente — query semplice, nessun rischio di eccezioni.
-     */
     private void publishToOther(Long conversationId, User sender, MessageDTO msg) {
         try {
             conversationRepository.findById(conversationId).ifPresent(conv -> {
@@ -116,7 +105,6 @@ public class MessagingController {
                 redisPubSubService.publish("/queue/messages/" + otherUserId, msg);
             });
         } catch (Exception e) {
-            // Non far fallire il send se il publish fallisce
             System.err.println("⚠️ Errore publish Redis: " + e.getMessage());
         }
     }
@@ -137,6 +125,4 @@ public class MessagingController {
             System.err.println("⚠️ Errore publish read receipt: " + e.getMessage());
         }
     }
-
-
 }

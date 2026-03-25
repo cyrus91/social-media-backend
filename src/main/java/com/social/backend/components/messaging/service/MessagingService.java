@@ -2,7 +2,6 @@ package com.social.backend.components.messaging.service;
 
 import com.social.backend.components.messaging.dto.ConversationDTO;
 import com.social.backend.components.messaging.dto.MessageDTO;
-import org.springframework.data.domain.Page;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
@@ -16,7 +15,7 @@ public interface MessagingService {
     List<ConversationDTO> getConversations(Long userId);
 
     // Messaggi di una conversazione (paginati)
-    Page<MessageDTO> getMessages(Long conversationId, Long userId, int page, int size);
+    List<MessageDTO> getMessages(Long conversationId, Long userId);
 
     // Invia messaggio testuale
     MessageDTO sendMessage(Long conversationId, Long senderId, String content);

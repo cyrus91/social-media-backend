@@ -12,9 +12,7 @@ import com.social.backend.components.messaging.service.MessagingService;
 import com.social.backend.components.storage.service.StorageService;
 import com.social.backend.components.user.entity.User;
 import com.social.backend.components.user.repository.UserRepository;
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -30,7 +28,6 @@ public class MessagingServiceImpl implements MessagingService {
     private final MessageRepository messageRepository;
     private final UserRepository userRepository;
     private final StorageService storageService;
-    // Tiene traccia degli utenti online (userId)
     private final Set<Long> onlineUsers = java.util.concurrent.ConcurrentHashMap.newKeySet();
 
     public MessagingServiceImpl(ConversationRepository conversationRepository,
@@ -50,7 +47,8 @@ public class MessagingServiceImpl implements MessagingService {
     @Override
     @Transactional
     public ConversationDTO getOrCreateConversation(Long userId, Long otherUserId) {
-        if (userId.equals(otherUserId)) throw new IllegalArgumentException("Non puoi aprire una chat con te stesso");
+        if (userId.equals(otherUserId))
+            throw new IllegalArgumentException("Non puoi aprire una chat con te stesso");
 
         return conversationRepository.findBetweenUsers(userId, otherUserId)
                 .map(c -> mapToConversationDTO(c, userId))
@@ -75,14 +73,13 @@ public class MessagingServiceImpl implements MessagingService {
 
     @Override
     @Transactional(readOnly = true)
-    public Page<MessageDTO> getMessages(Long conversationId, Long userId, int page, int size) {
+    public List<MessageDTO> getMessages(Long conversationId, Long userId) {
         Conversation conv = conversationRepository.findById(conversationId)
                 .orElseThrow(() -> new ResourceNotFoundException("Conversazione non trovata"));
-        if (!conv.getUser1().getId().equals(userId) && !conv.getUser2().getId().equals(userId)) {
+        if (!conv.getUser1().getId().equals(userId) && !conv.getUser2().getId().equals(userId))
             throw new ForbiddenException("Non puoi leggere questa conversazione");
-        }
-        return messageRepository.findByConversationIdOrderByCreatedAtAsc(
-                conversationId, PageRequest.of(page, size)).map(this::mapToMessageDTO);
+        return messageRepository.findAllByConversationId(conversationId)
+                .stream().map(this::mapToMessageDTO).collect(Collectors.toList());
     }
 
     @Override
@@ -90,27 +87,30 @@ public class MessagingServiceImpl implements MessagingService {
     public MessageDTO sendMessage(Long conversationId, Long senderId, String content) {
         Conversation conv = conversationRepository.findById(conversationId)
                 .orElseThrow(() -> new ResourceNotFoundException("Conversazione non trovata"));
-        if (!conv.getUser1().getId().equals(senderId) && !conv.getUser2().getId().equals(senderId)) {
+        if (!conv.getUser1().getId().equals(senderId) && !conv.getUser2().getId().equals(senderId))
             throw new ForbiddenException("Non puoi inviare messaggi in questa conversazione");
-        }
         User sender = userRepository.findById(senderId)
                 .orElseThrow(() -> new ResourceNotFoundException("Utente non trovato"));
+
         Message msg = Message.builder()
-                .conversation(conv).sender(sender).content(content).isRead(false).build();
+                .conversation(conv)
+                .sender(sender)
+                .content(content)
+                .isRead(false)
+                .build();
         Message saved = messageRepository.save(msg);
-        // Aggiorna solo updatedAt — NON fare save(conv) con orphanRemoval!
         conversationRepository.touchUpdatedAt(conv.getId());
         return mapToMessageDTO(saved);
     }
 
     @Override
     @Transactional
-    public MessageDTO sendMessageWithImage(Long conversationId, Long senderId, String content, MultipartFile image) {
+    public MessageDTO sendMessageWithImage(Long conversationId, Long senderId,
+                                           String content, MultipartFile image) {
         Conversation conv = conversationRepository.findById(conversationId)
                 .orElseThrow(() -> new ResourceNotFoundException("Conversazione non trovata"));
-        if (!conv.getUser1().getId().equals(senderId) && !conv.getUser2().getId().equals(senderId)) {
+        if (!conv.getUser1().getId().equals(senderId) && !conv.getUser2().getId().equals(senderId))
             throw new ForbiddenException("Non puoi inviare messaggi in questa conversazione");
-        }
         User sender = userRepository.findById(senderId)
                 .orElseThrow(() -> new ResourceNotFoundException("Utente non trovato"));
 
@@ -121,8 +121,12 @@ public class MessagingServiceImpl implements MessagingService {
         }
 
         Message msg = Message.builder()
-                .conversation(conv).sender(sender)
-                .content(content).imageUrl(imageUrl).isRead(false).build();
+                .conversation(conv)
+                .sender(sender)
+                .content(content)
+                .imageUrl(imageUrl)
+                .isRead(false)
+                .build();
         messageRepository.save(msg);
         conversationRepository.touchUpdatedAt(conv.getId());
         return mapToMessageDTO(msg);
@@ -141,9 +145,9 @@ public class MessagingServiceImpl implements MessagingService {
     }
 
     private ConversationDTO mapToConversationDTO(Conversation conv, Long currentUserId) {
-        User other = conv.getUser1().getId().equals(currentUserId) ? conv.getUser2() : conv.getUser1();
+        User other = conv.getUser1().getId().equals(currentUserId)
+                ? conv.getUser2() : conv.getUser1();
 
-        // Ultimo messaggio
         var lastPage = messageRepository.findLastMessage(conv.getId(), PageRequest.of(0, 1));
         String lastMsg = null;
         java.time.LocalDateTime lastMsgAt = conv.getUpdatedAt();
