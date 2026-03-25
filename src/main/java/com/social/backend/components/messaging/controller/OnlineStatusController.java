@@ -5,6 +5,8 @@ import com.social.backend.components.user.repository.UserRepository;
 import com.social.backend.config.RedisPubSubService;
 import org.springframework.context.event.EventListener;
 import org.springframework.messaging.simp.stomp.StompHeaderAccessor;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
 import org.springframework.web.socket.messaging.SessionConnectedEvent;
 import org.springframework.web.socket.messaging.SessionDisconnectEvent;
@@ -20,8 +22,6 @@ public class OnlineStatusController {
     private final RedisPubSubService redisPubSubService;
     private final UserRepository userRepository;
 
-    // Conta quante sessioni WebSocket attive ha ogni utente
-    // Un utente è offline solo quando tutte le sue sessioni si disconnettono
     private final ConcurrentHashMap<Long, AtomicInteger> sessionCount = new ConcurrentHashMap<>();
 
     public OnlineStatusController(MessagingServiceImpl messagingService,
@@ -34,16 +34,13 @@ public class OnlineStatusController {
 
     @EventListener
     public void handleConnect(SessionConnectedEvent event) {
-        StompHeaderAccessor accessor = StompHeaderAccessor.wrap(event.getMessage());
-        String username = getUsername(accessor);
+        String username = extractUsername(event.getMessage());
         if (username == null) return;
 
         userRepository.findByUsername(username).ifPresent(user -> {
             int count = sessionCount
                     .computeIfAbsent(user.getId(), id -> new AtomicInteger(0))
                     .incrementAndGet();
-
-            // Setta online solo alla prima connessione
             if (count == 1) {
                 messagingService.setOnline(user.getId());
                 redisPubSubService.publish("/topic/online-status",
@@ -54,17 +51,13 @@ public class OnlineStatusController {
 
     @EventListener
     public void handleDisconnect(SessionDisconnectEvent event) {
-        StompHeaderAccessor accessor = StompHeaderAccessor.wrap(event.getMessage());
-        String username = getUsername(accessor);
+        String username = extractUsername(event.getMessage());
         if (username == null) return;
 
         userRepository.findByUsername(username).ifPresent(user -> {
             AtomicInteger counter = sessionCount.get(user.getId());
             if (counter == null) return;
-
             int count = counter.decrementAndGet();
-
-            // Setta offline solo quando TUTTE le sessioni si disconnettono
             if (count <= 0) {
                 sessionCount.remove(user.getId());
                 messagingService.setOffline(user.getId());
@@ -74,12 +67,20 @@ public class OnlineStatusController {
         });
     }
 
-    private String getUsername(StompHeaderAccessor accessor) {
-        if (accessor.getUser() != null) return accessor.getUser().getName();
-        Object login = accessor.getNativeHeader("login");
-        if (login instanceof java.util.List<?> list && !list.isEmpty()) {
-            return list.get(0).toString();
+    private String extractUsername(org.springframework.messaging.Message<?> message) {
+        StompHeaderAccessor accessor = StompHeaderAccessor.wrap(message);
+        if (accessor.getUser() == null) return null;
+
+        // accessor.getUser() è un UsernamePasswordAuthenticationToken
+        // il Principal dentro è un oggetto UserDetails — usiamo getUsername()
+        if (accessor.getUser() instanceof UsernamePasswordAuthenticationToken auth) {
+            Object principal = auth.getPrincipal();
+            if (principal instanceof UserDetails ud) {
+                return ud.getUsername();
+            }
+            return principal.toString();
         }
-        return null;
+        // Fallback per altri tipi di Principal
+        return accessor.getUser().getName();
     }
 }
