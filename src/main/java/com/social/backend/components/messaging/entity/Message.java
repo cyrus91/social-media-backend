@@ -13,7 +13,10 @@ import java.time.LocalDateTime;
                 @Index(name = "idx_messages_conversation", columnList = "conversation_id"),
                 @Index(name = "idx_messages_sender", columnList = "sender_id")
         })
-@Data
+// Usiamo @Getter/@Setter/@Builder invece di @Data
+// @Data genera equals/hashCode che include entity lazy → LazyInitializationException
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder

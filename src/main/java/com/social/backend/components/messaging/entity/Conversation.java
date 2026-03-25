@@ -10,7 +10,8 @@ import java.time.LocalDateTime;
 @Entity
 @Table(name = "conversations",
         uniqueConstraints = @UniqueConstraint(columnNames = {"user1_id", "user2_id"}))
-@Data
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
@@ -27,9 +28,6 @@ public class Conversation {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user2_id", nullable = false)
     private User user2;
-
-    // Nessuna collection messages qui — si usa sempre messageRepository direttamente
-    // Evita il bug orphanRemoval che cancellerebbe tutti i messaggi
 
     @CreationTimestamp
     @Column(nullable = false, updatable = false)
