@@ -1,8 +1,6 @@
 package com.social.backend.components.messaging.repository;
 
 import com.social.backend.components.messaging.entity.Message;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -11,13 +9,18 @@ import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface MessageRepository extends JpaRepository<Message, Long> {
 
-    // Tutti i messaggi di una conversazione ordinati per data
+    // Tutti i messaggi di una conversazione in ordine cronologico (nessun limite)
     @Query("SELECT m FROM Message m WHERE m.conversation.id = :conversationId ORDER BY m.createdAt ASC")
     List<Message> findAllByConversationId(@Param("conversationId") Long conversationId);
+
+    // Ultimo messaggio di una conversazione (per preview)
+    @Query("SELECT m FROM Message m WHERE m.conversation.id = :convId ORDER BY m.createdAt DESC LIMIT 1")
+    Optional<Message> findLastMessage(@Param("convId") Long convId);
 
     // Conta messaggi non letti per un utente in una conversazione
     @Query("SELECT COUNT(m) FROM Message m WHERE m.conversation.id = :convId " +
@@ -36,9 +39,4 @@ public interface MessageRepository extends JpaRepository<Message, Long> {
     @Query("UPDATE Message m SET m.isRead = true WHERE m.conversation.id = :convId " +
             "AND m.sender.id != :userId AND m.isRead = false")
     void markAllAsRead(@Param("convId") Long convId, @Param("userId") Long userId);
-
-    // Ultimo messaggio di una conversazione
-    @Query("SELECT m FROM Message m WHERE m.conversation.id = :convId " +
-            "ORDER BY m.createdAt DESC")
-    Page<Message> findLastMessage(@Param("convId") Long convId, Pageable pageable);
 }

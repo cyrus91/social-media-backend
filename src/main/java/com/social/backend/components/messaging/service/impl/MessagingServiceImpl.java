@@ -12,12 +12,12 @@ import com.social.backend.components.messaging.service.MessagingService;
 import com.social.backend.components.storage.service.StorageService;
 import com.social.backend.components.user.entity.User;
 import com.social.backend.components.user.repository.UserRepository;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -148,11 +148,11 @@ public class MessagingServiceImpl implements MessagingService {
         User other = conv.getUser1().getId().equals(currentUserId)
                 ? conv.getUser2() : conv.getUser1();
 
-        var lastPage = messageRepository.findLastMessage(conv.getId(), PageRequest.of(0, 1));
         String lastMsg = null;
         java.time.LocalDateTime lastMsgAt = conv.getUpdatedAt();
-        if (!lastPage.isEmpty()) {
-            Message last = lastPage.getContent().get(0);
+        var lastMessage = messageRepository.findLastMessage(conv.getId());
+        if (lastMessage.isPresent()) {
+            Message last = lastMessage.get();
             lastMsg = last.getImageUrl() != null ? "📷 Foto" : last.getContent();
             lastMsgAt = last.getCreatedAt();
         }
