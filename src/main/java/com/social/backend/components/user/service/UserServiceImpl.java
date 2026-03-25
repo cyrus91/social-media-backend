@@ -73,8 +73,6 @@ public class UserServiceImpl implements UserService {
                 .followerCount(followerCount != null ? followerCount.intValue() : 0)
                 .followingCount(followingCount != null ? followingCount.intValue() : 0)
                 .postCount(postCount != null ? postCount.intValue() : 0)
-                .role(user.getRole() != null ? user.getRole() : "USER")
-                .banned(user.isBanned())
                 .build();
     }
 
@@ -84,7 +82,11 @@ public class UserServiceImpl implements UserService {
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new ResourceNotFoundException("Utente non trovato: " + username));
 
-        // ✅ CALCOLA I CONTATORI DAL DB!
+        // Profilo non accessibile se email non verificata
+        if (!user.isEmailVerified()) {
+            throw new ResourceNotFoundException("Utente non trovato: " + username);
+        }
+
         Long followerCount = followRepository.countByFollowedId(user.getId());
         Long followingCount = followRepository.countByFollowerId(user.getId());
         Long postCount = Long.valueOf(postRepository.countByAuthorId(user.getId()));
@@ -101,8 +103,6 @@ public class UserServiceImpl implements UserService {
                 .followerCount(followerCount != null ? followerCount.intValue() : 0)
                 .followingCount(followingCount != null ? followingCount.intValue() : 0)
                 .postCount(postCount != null ? postCount.intValue() : 0)
-                .role(user.getRole() != null ? user.getRole() : "USER")
-                .banned(user.isBanned())
                 .build();
     }
 
@@ -207,16 +207,14 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public List<UserResponse> searchUsers(String query) {
-        // Validazione
         if (query == null || query.trim().isEmpty()) {
-            return List.of(); // Ritorna lista vuota
+            return List.of();
         }
 
-        // Ricerca
         List<User> users = userRepository.searchByUsername(query.trim());
 
-        // Limita a 10 risultati
         return users.stream()
+                .filter(User::isEmailVerified) // escludi utenti non verificati
                 .limit(10)
                 .map(this::mapToUserResponse)
                 .collect(Collectors.toList());
