@@ -116,7 +116,8 @@ public class MessagingServiceImpl implements MessagingService {
 
         String imageUrl = null;
         if (image != null && !image.isEmpty()) {
-            imageUrl = storageService.store(image, "messages/" + conversationId);
+            String publicId = storageService.store(image, "messages/" + conversationId);
+            imageUrl = storageService.getFileUrl(publicId, "messages/" + conversationId);
         }
 
         Message msg = Message.builder()
