@@ -29,14 +29,12 @@ public class MessagingController {
         this.redisPubSubService = redisPubSubService;
     }
 
-    // GET tutte le conversazioni dell'utente loggato
     @GetMapping("/conversations")
     public List<ConversationDTO> getConversations(
             @AuthenticationPrincipal UserDetailsImpl userDetails) {
         return messagingService.getConversations(userDetails.getUser().getId());
     }
 
-    // GET o crea conversazione con un utente specifico
     @PostMapping("/conversations/{otherUserId}")
     public ConversationDTO getOrCreateConversation(
             @PathVariable Long otherUserId,
@@ -45,20 +43,19 @@ public class MessagingController {
                 userDetails.getUser().getId(), otherUserId);
     }
 
-    // GET messaggi di una conversazione (segna anche come letti)
     @GetMapping("/conversations/{conversationId}/messages")
     public Page<MessageDTO> getMessages(
             @PathVariable Long conversationId,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "30") int size,
             @AuthenticationPrincipal UserDetailsImpl userDetails) {
-        Page<MessageDTO> messages = messagingService.getMessages(
-                conversationId, userDetails.getUser().getId(), page, size);
-        messagingService.markAsRead(conversationId, userDetails.getUser().getId());
+        Long userId = userDetails.getUser().getId();
+        Page<MessageDTO> messages = messagingService.getMessages(conversationId, userId, page, size);
+        // Segna come letti e notifica il mittente
+        markReadAndNotify(conversationId, userId);
         return messages;
     }
 
-    // POST invia messaggio testuale
     @PostMapping("/conversations/{conversationId}/messages")
     @ResponseStatus(HttpStatus.CREATED)
     public MessageDTO sendMessage(
@@ -72,7 +69,6 @@ public class MessagingController {
         return msg;
     }
 
-    // POST invia messaggio con immagine
     @PostMapping(value = "/conversations/{conversationId}/messages/image",
             consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @ResponseStatus(HttpStatus.CREATED)
@@ -88,20 +84,36 @@ public class MessagingController {
         return msg;
     }
 
-    // GET conteggio messaggi non letti
     @GetMapping("/unread-count")
     public Map<String, Long> getUnreadCount(
             @AuthenticationPrincipal UserDetailsImpl userDetails) {
         return Map.of("count", messagingService.countUnread(userDetails.getUser().getId()));
     }
 
-    // PUT segna conversazione come letta
     @PutMapping("/conversations/{conversationId}/read")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void markAsRead(
             @PathVariable Long conversationId,
             @AuthenticationPrincipal UserDetailsImpl userDetails) {
-        messagingService.markAsRead(conversationId, userDetails.getUser().getId());
+        markReadAndNotify(conversationId, userDetails.getUser().getId());
+    }
+
+    // ============================================
+    // HELPERS
+    // ============================================
+
+    private void markReadAndNotify(Long conversationId, Long userId) {
+        messagingService.markAsRead(conversationId, userId);
+        // Pubblica read receipt al mittente dei messaggi
+        messagingService.getConversations(userId).stream()
+                .filter(c -> c.getId().equals(conversationId))
+                .findFirst()
+                .ifPresent(conv ->
+                        redisPubSubService.publish(
+                                "/queue/read-receipt/" + conv.getOtherUserId(),
+                                Map.of("conversationId", conversationId, "readBy", userId)
+                        )
+                );
     }
 
     private Long getOtherUserId(Long conversationId, User currentUser) {
