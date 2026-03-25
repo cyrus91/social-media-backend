@@ -2,6 +2,7 @@ package com.social.backend.components.messaging.controller;
 
 import com.social.backend.components.messaging.dto.ConversationDTO;
 import com.social.backend.components.messaging.dto.MessageDTO;
+import com.social.backend.components.messaging.repository.ConversationRepository;
 import com.social.backend.components.messaging.service.MessagingService;
 import com.social.backend.components.user.entity.User;
 import com.social.backend.config.RedisPubSubService;
@@ -22,11 +23,14 @@ public class MessagingController {
 
     private final MessagingService messagingService;
     private final RedisPubSubService redisPubSubService;
+    private final ConversationRepository conversationRepository;
 
     public MessagingController(MessagingService messagingService,
-                               RedisPubSubService redisPubSubService) {
+                               RedisPubSubService redisPubSubService,
+                               ConversationRepository conversationRepository) {
         this.messagingService = messagingService;
         this.redisPubSubService = redisPubSubService;
+        this.conversationRepository = conversationRepository;
     }
 
     @GetMapping("/conversations")
@@ -51,7 +55,6 @@ public class MessagingController {
             @AuthenticationPrincipal UserDetailsImpl userDetails) {
         Long userId = userDetails.getUser().getId();
         Page<MessageDTO> messages = messagingService.getMessages(conversationId, userId, page, size);
-        // Segna come letti e notifica il mittente
         markReadAndNotify(conversationId, userId);
         return messages;
     }
@@ -64,8 +67,7 @@ public class MessagingController {
             @AuthenticationPrincipal UserDetailsImpl userDetails) {
         MessageDTO msg = messagingService.sendMessage(
                 conversationId, userDetails.getUser().getId(), body.get("content"));
-        Long otherUserId = getOtherUserId(conversationId, userDetails.getUser());
-        redisPubSubService.publish("/queue/messages/" + otherUserId, msg);
+        publishToOther(conversationId, userDetails.getUser(), msg);
         return msg;
     }
 
@@ -79,8 +81,7 @@ public class MessagingController {
             @AuthenticationPrincipal UserDetailsImpl userDetails) {
         MessageDTO msg = messagingService.sendMessageWithImage(
                 conversationId, userDetails.getUser().getId(), content, image);
-        Long otherUserId = getOtherUserId(conversationId, userDetails.getUser());
-        redisPubSubService.publish("/queue/messages/" + otherUserId, msg);
+        publishToOther(conversationId, userDetails.getUser(), msg);
         return msg;
     }
 
@@ -102,25 +103,40 @@ public class MessagingController {
     // HELPERS
     // ============================================
 
-    private void markReadAndNotify(Long conversationId, Long userId) {
-        messagingService.markAsRead(conversationId, userId);
-        // Pubblica read receipt al mittente dei messaggi
-        messagingService.getConversations(userId).stream()
-                .filter(c -> c.getId().equals(conversationId))
-                .findFirst()
-                .ifPresent(conv ->
-                        redisPubSubService.publish(
-                                "/queue/read-receipt/" + conv.getOtherUserId(),
-                                Map.of("conversationId", conversationId, "readBy", userId)
-                        )
-                );
+    /**
+     * Pubblica il messaggio al destinatario via Redis.
+     * Usa ConversationRepository direttamente — query semplice, nessun rischio di eccezioni.
+     */
+    private void publishToOther(Long conversationId, User sender, MessageDTO msg) {
+        try {
+            conversationRepository.findById(conversationId).ifPresent(conv -> {
+                Long otherUserId = conv.getUser1().getId().equals(sender.getId())
+                        ? conv.getUser2().getId()
+                        : conv.getUser1().getId();
+                redisPubSubService.publish("/queue/messages/" + otherUserId, msg);
+            });
+        } catch (Exception e) {
+            // Non far fallire il send se il publish fallisce
+            System.err.println("⚠️ Errore publish Redis: " + e.getMessage());
+        }
     }
 
-    private Long getOtherUserId(Long conversationId, User currentUser) {
-        return messagingService.getConversations(currentUser.getId()).stream()
-                .filter(c -> c.getId().equals(conversationId))
-                .findFirst()
-                .map(ConversationDTO::getOtherUserId)
-                .orElse(0L);
+    private void markReadAndNotify(Long conversationId, Long userId) {
+        messagingService.markAsRead(conversationId, userId);
+        try {
+            conversationRepository.findById(conversationId).ifPresent(conv -> {
+                Long otherUserId = conv.getUser1().getId().equals(userId)
+                        ? conv.getUser2().getId()
+                        : conv.getUser1().getId();
+                redisPubSubService.publish(
+                        "/queue/read-receipt/" + otherUserId,
+                        Map.of("conversationId", conversationId, "readBy", userId)
+                );
+            });
+        } catch (Exception e) {
+            System.err.println("⚠️ Errore publish read receipt: " + e.getMessage());
+        }
     }
+
+
 }
