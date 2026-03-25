@@ -31,7 +31,7 @@ public class Conversation {
     @JoinColumn(name = "user2_id", nullable = false)
     private User user2;
 
-    @OneToMany(mappedBy = "conversation", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "conversation", cascade = CascadeType.PERSIST, fetch = FetchType.LAZY)
     @OrderBy("createdAt DESC")
     @Builder.Default
     private List<Message> messages = new ArrayList<>();

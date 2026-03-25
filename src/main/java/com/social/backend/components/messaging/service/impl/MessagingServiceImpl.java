@@ -98,8 +98,8 @@ public class MessagingServiceImpl implements MessagingService {
         Message msg = Message.builder()
                 .conversation(conv).sender(sender).content(content).isRead(false).build();
         Message saved = messageRepository.save(msg);
-        // Aggiorna updatedAt della conversazione
-        conversationRepository.save(conv);
+        // Aggiorna solo updatedAt — NON fare save(conv) con orphanRemoval!
+        conversationRepository.touchUpdatedAt(conv.getId());
         return mapToMessageDTO(saved);
     }
 
@@ -124,7 +124,7 @@ public class MessagingServiceImpl implements MessagingService {
                 .conversation(conv).sender(sender)
                 .content(content).imageUrl(imageUrl).isRead(false).build();
         messageRepository.save(msg);
-        conversationRepository.save(conv);
+        conversationRepository.touchUpdatedAt(conv.getId());
         return mapToMessageDTO(msg);
     }
 
