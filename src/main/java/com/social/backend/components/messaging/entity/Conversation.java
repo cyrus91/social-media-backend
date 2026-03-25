@@ -4,11 +4,8 @@ import com.social.backend.components.user.entity.User;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
 
 @Entity
 @Table(name = "conversations",
@@ -31,15 +28,13 @@ public class Conversation {
     @JoinColumn(name = "user2_id", nullable = false)
     private User user2;
 
-    @OneToMany(mappedBy = "conversation", cascade = CascadeType.PERSIST, fetch = FetchType.LAZY)
-    @OrderBy("createdAt DESC")
-    @Builder.Default
-    private List<Message> messages = new ArrayList<>();
+    // Nessuna collection messages qui — si usa sempre messageRepository direttamente
+    // Evita il bug orphanRemoval che cancellerebbe tutti i messaggi
 
     @CreationTimestamp
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
-    @UpdateTimestamp
+    @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 }
