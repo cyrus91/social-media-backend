@@ -22,4 +22,5 @@ public class ConversationDTO {
     private String lastMessage;
     private LocalDateTime lastMessageAt;
     private Long unreadCount;
+    private Integer disappearingHours;
 }

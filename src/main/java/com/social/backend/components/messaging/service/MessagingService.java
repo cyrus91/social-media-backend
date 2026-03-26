@@ -8,24 +8,28 @@ import java.util.List;
 
 public interface MessagingService {
 
-    // Ottieni o crea conversazione tra due utenti
     ConversationDTO getOrCreateConversation(Long userId, Long otherUserId);
 
-    // Lista conversazioni di un utente
     List<ConversationDTO> getConversations(Long userId);
 
-    // Messaggi di una conversazione (paginati)
     List<MessageDTO> getMessages(Long conversationId, Long userId);
 
-    // Invia messaggio testuale
-    MessageDTO sendMessage(Long conversationId, Long senderId, String content);
+    MessageDTO sendMessage(Long conversationId, Long senderId, String content, Long replyToId);
 
-    // Invia messaggio con immagine
-    MessageDTO sendMessageWithImage(Long conversationId, Long senderId, String content, MultipartFile image);
+    MessageDTO sendMessageWithImage(Long conversationId, Long senderId, String content, MultipartFile image, Long replyToId);
 
-    // Segna messaggi come letti
+    MessageDTO sendVoiceMessage(Long conversationId, Long senderId, MultipartFile audio);
+
     void markAsRead(Long conversationId, Long userId);
 
-    // Conta messaggi non letti totali
     long countUnread(Long userId);
+
+    // Delete
+    void deleteMessageForAll(Long messageId, Long requesterId);
+
+    // Reactions
+    MessageDTO toggleReaction(Long messageId, Long userId, String emoji);
+
+    // Disappearing messages
+    void setDisappearingMessages(Long conversationId, Long userId, Integer hoursToExpire);
 }

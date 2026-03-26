@@ -91,6 +91,22 @@ public class CloudinaryStorageServiceImpl implements StorageService {
     }
 
     @Override
+    public String storeRaw(MultipartFile file, String directory) {
+        try {
+            String fileName = UUID.randomUUID().toString();
+            String publicId = directory + "/" + fileName;
+            Map uploadResult = cloudinary.uploader().upload(file.getBytes(),
+                    ObjectUtils.asMap(
+                            "public_id", publicId,
+                            "resource_type", "raw"  // audio/video/file generico
+                    ));
+            return (String) uploadResult.get("secure_url");
+        } catch (IOException e) {
+            throw new FileStorageException("Errore upload audio: " + e.getMessage(), e);
+        }
+    }
+
+    @Override
     public void delete(String publicId) {
         try {
             System.out.println("🗑️ Eliminazione da Cloudinary: " + publicId);

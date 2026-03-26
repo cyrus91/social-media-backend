@@ -38,24 +38,23 @@ public class LocalStorageServiceImpl implements StorageService {
         // Validazione
         validateFile(file);
 
-        // Ottieni nome file originale
-        String originalFileName = StringUtils.cleanPath(file.getOriginalFilename());
+        // Ottieni nome file originale (null-safe)
+        String originalFileName = StringUtils.cleanPath(
+                file.getOriginalFilename() != null ? file.getOriginalFilename() : "file"
+        );
 
         // Genera nome file unico
         String extension = getFileExtension(originalFileName);
-        String fileName = UUID.randomUUID().toString() + "." + extension;
+        String fileName = UUID.randomUUID() + "." + extension;
 
         try {
-            // Crea directory se non esiste
             Path uploadPath = Paths.get(directory);
             if (!Files.exists(uploadPath)) {
                 Files.createDirectories(uploadPath);
             }
 
-            // Salva file
             Path filePath = uploadPath.resolve(fileName);
 
-            // Se è un'immagine, ottimizza
             if (isImage(extension)) {
                 optimizeAndSaveImage(file, filePath.toFile());
             } else {
@@ -66,6 +65,36 @@ public class LocalStorageServiceImpl implements StorageService {
 
         } catch (IOException e) {
             throw new FileStorageException("Errore durante il salvataggio del file: " + fileName, e);
+        }
+    }
+
+    // Salva file raw (audio, video, ecc.) senza ottimizzazione immagine
+    @Override
+    public String storeRaw(MultipartFile file, String directory) {
+        if (file == null || file.isEmpty()) {
+            throw new InvalidFileException("File vuoto");
+        }
+
+        String originalFileName = StringUtils.cleanPath(
+                file.getOriginalFilename() != null ? file.getOriginalFilename() : "file"
+        );
+
+        String extension = getFileExtension(originalFileName);
+        String fileName = UUID.randomUUID() + "." + extension;
+
+        try {
+            Path uploadPath = Paths.get(directory);
+            if (!Files.exists(uploadPath)) {
+                Files.createDirectories(uploadPath);
+            }
+
+            Path filePath = uploadPath.resolve(fileName);
+            Files.copy(file.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
+
+            return fileName;
+
+        } catch (IOException e) {
+            throw new FileStorageException("Errore durante il salvataggio del file raw: " + fileName, e);
         }
     }
 

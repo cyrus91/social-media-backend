@@ -36,6 +36,10 @@ public class Conversation {
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
+    // Ore dopo cui i messaggi scadono (null = disabilitato)
+    @Column(name = "disappearing_hours")
+    private Integer disappearingHours;
+
     @PrePersist
     protected void onCreate() {
         if (updatedAt == null) updatedAt = LocalDateTime.now();
