@@ -18,12 +18,12 @@ public interface MessageReactionRepository extends JpaRepository<MessageReaction
 
     List<MessageReaction> findByMessageId(Long messageId);
 
-    @Modifying
+    @Modifying(clearAutomatically = true)
     @Transactional
     @Query("DELETE FROM MessageReaction r WHERE r.message.id = :messageId AND r.user.id = :userId")
     void deleteByMessageIdAndUserId(@Param("messageId") Long messageId, @Param("userId") Long userId);
 
-    @Modifying
+    @Modifying(clearAutomatically = true)
     @Transactional
     @Query("UPDATE MessageReaction r SET r.emoji = :emoji " +
             "WHERE r.message.id = :messageId AND r.user.id = :userId")

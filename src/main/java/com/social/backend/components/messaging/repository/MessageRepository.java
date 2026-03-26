@@ -34,13 +34,13 @@ public interface MessageRepository extends JpaRepository<Message, Long> {
     long countAllUnreadForUser(@Param("userId") Long userId);
 
     // Segna tutti i messaggi come letti in una conversazione
-    @Modifying
+    @Modifying(clearAutomatically = true)
     @Transactional
     @Query("UPDATE Message m SET m.isRead = true WHERE m.conversation.id = :convId " +
             "AND m.sender.id != :userId AND m.isRead = false")
     void markAllAsRead(@Param("convId") Long convId, @Param("userId") Long userId);
 
-    @Modifying
+    @Modifying(clearAutomatically = true)
     @Transactional
     @Query("UPDATE Message m SET m.deletedForAll = true, m.content = null, m.imageUrl = null, m.audioUrl = null " +
             "WHERE m.expiresAt IS NOT NULL AND m.expiresAt < CURRENT_TIMESTAMP AND m.deletedForAll = false")
