@@ -131,12 +131,11 @@ public class MessagingController {
                                      @RequestBody Map<String, String> body,
                                      @AuthenticationPrincipal UserDetailsImpl u) {
         MessageDTO updated = messagingService.toggleReaction(messageId, u.getUser().getId(), body.get("emoji"));
-        // Notifica entrambi
+        // Notifica SOLO l'altro utente — chi ha fatto la reazione aggiorna già lo state locale
         conversationRepository.findById(updated.getConversationId()).ifPresent(conv -> {
             Long otherUserId = conv.getUser1().getId().equals(u.getUser().getId())
                     ? conv.getUser2().getId() : conv.getUser1().getId();
             redisPubSubService.publish("/queue/reaction/" + otherUserId, updated);
-            redisPubSubService.publish("/queue/reaction/" + u.getUser().getId(), updated);
         });
         return updated;
     }
@@ -160,17 +159,37 @@ public class MessagingController {
     // TYPING — via STOMP @MessageMapping (prefix /app/typing)
     @MessageMapping("/typing")
     public void handleTyping(@Payload Map<String, Object> payload,
-                             @AuthenticationPrincipal UserDetailsImpl u) {
-        if (u == null) return;
+                             org.springframework.messaging.simp.SimpMessageHeaderAccessor headerAccessor) {
+        // Con @MessageMapping il Principal viene da headerAccessor, non da @AuthenticationPrincipal
+        java.security.Principal principal = headerAccessor.getUser();
+        if (principal == null) return;
+
+        String username = null;
+        if (principal instanceof org.springframework.security.authentication.UsernamePasswordAuthenticationToken auth) {
+            Object p = auth.getPrincipal();
+            if (p instanceof com.social.backend.security.UserDetailsImpl ud) {
+                username = ud.getUsername();
+            }
+        }
+        if (username == null) username = principal.getName();
+
+        final String finalUsername = username;
         Long conversationId = Long.valueOf(payload.get("conversationId").toString());
         boolean isTyping = Boolean.parseBoolean(payload.get("isTyping").toString());
+
         conversationRepository.findById(conversationId).ifPresent(conv -> {
-            Long otherUserId = conv.getUser1().getId().equals(u.getUser().getId())
+            // Trova l'utente dal repository tramite username
+            Long senderId = null;
+            if (conv.getUser1().getUsername().equals(finalUsername)) senderId = conv.getUser1().getId();
+            else if (conv.getUser2().getUsername().equals(finalUsername)) senderId = conv.getUser2().getId();
+            if (senderId == null) return;
+
+            Long otherUserId = conv.getUser1().getId().equals(senderId)
                     ? conv.getUser2().getId() : conv.getUser1().getId();
             redisPubSubService.publish("/queue/typing/" + otherUserId,
                     Map.of("conversationId", conversationId,
-                            "userId", u.getUser().getId(),
-                            "username", u.getUser().getUsername(),
+                            "userId", senderId,
+                            "username", finalUsername,
                             "isTyping", isTyping));
         });
     }
