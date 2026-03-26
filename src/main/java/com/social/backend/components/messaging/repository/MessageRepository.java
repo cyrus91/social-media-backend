@@ -39,4 +39,11 @@ public interface MessageRepository extends JpaRepository<Message, Long> {
     @Query("UPDATE Message m SET m.isRead = true WHERE m.conversation.id = :convId " +
             "AND m.sender.id != :userId AND m.isRead = false")
     void markAllAsRead(@Param("convId") Long convId, @Param("userId") Long userId);
+
+    // Segna come eliminati i messaggi scaduti
+    @Modifying
+    @Transactional
+    @Query("UPDATE Message m SET m.deletedForAll = true, m.content = null, m.imageUrl = null, m.audioUrl = null " +
+            "WHERE m.expiresAt IS NOT NULL AND m.expiresAt < CURRENT_TIMESTAMP AND m.deletedForAll = false")
+    int markExpiredAsDeleted();
 }

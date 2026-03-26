@@ -31,6 +31,11 @@ public class GroqAIServiceImpl implements AIService {
     }
 
     @Override
+    public String generate(String prompt) {
+        return callGroq(prompt, 500);
+    }
+
+    @Override
     public String generateCaption(String partialText, List<String> imageUrls, String tone) {
         String prompt = buildCaptionPrompt(partialText, imageUrls, tone);
         return callGroq(prompt, 150);

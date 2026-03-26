@@ -4,6 +4,7 @@ import com.social.backend.components.messaging.dto.ConversationDTO;
 import com.social.backend.components.messaging.dto.MessageDTO;
 import com.social.backend.components.messaging.repository.ConversationRepository;
 import com.social.backend.components.messaging.repository.MessageRepository;
+import com.social.backend.components.user.repository.UserRepository;
 import com.social.backend.components.messaging.service.MessagingService;
 import com.social.backend.components.user.entity.User;
 import com.social.backend.config.RedisPubSubService;
@@ -27,15 +28,18 @@ public class MessagingController {
     private final RedisPubSubService redisPubSubService;
     private final ConversationRepository conversationRepository;
     private final MessageRepository messageRepository;
+    private final UserRepository userRepository;
 
     public MessagingController(MessagingService messagingService,
                                RedisPubSubService redisPubSubService,
                                ConversationRepository conversationRepository,
-                               MessageRepository messageRepository) {
+                               MessageRepository messageRepository,
+                               UserRepository userRepository) {
         this.messagingService = messagingService;
         this.redisPubSubService = redisPubSubService;
         this.conversationRepository = conversationRepository;
         this.messageRepository = messageRepository;
+        this.userRepository = userRepository;
     }
 
     @GetMapping("/conversations")
@@ -160,10 +164,10 @@ public class MessagingController {
     @MessageMapping("/typing")
     public void handleTyping(@Payload Map<String, Object> payload,
                              org.springframework.messaging.simp.SimpMessageHeaderAccessor headerAccessor) {
-        // Con @MessageMapping il Principal viene da headerAccessor, non da @AuthenticationPrincipal
         java.security.Principal principal = headerAccessor.getUser();
         if (principal == null) return;
 
+        // Estrai username dal Principal (settato dal ChannelInterceptor JWT)
         String username = null;
         if (principal instanceof org.springframework.security.authentication.UsernamePasswordAuthenticationToken auth) {
             Object p = auth.getPrincipal();
@@ -177,15 +181,18 @@ public class MessagingController {
         Long conversationId = Long.valueOf(payload.get("conversationId").toString());
         boolean isTyping = Boolean.parseBoolean(payload.get("isTyping").toString());
 
+        // Usa query nativa per evitare LazyInitializationException sui proxy User
         conversationRepository.findById(conversationId).ifPresent(conv -> {
-            // Trova l'utente dal repository tramite username
-            Long senderId = null;
-            if (conv.getUser1().getUsername().equals(finalUsername)) senderId = conv.getUser1().getId();
-            else if (conv.getUser2().getUsername().equals(finalUsername)) senderId = conv.getUser2().getId();
+            // Leggi gli id direttamente dalla query — non accedere a getUser1().getUsername()
+            Long user1Id = conv.getUser1().getId(); // solo getId() è safe su proxy lazy
+            Long user2Id = conv.getUser2().getId();
+
+            // Trova l'utente che sta scrivendo tramite repository
+            Long senderId = userRepository.findByUsername(finalUsername)
+                    .map(u -> u.getId()).orElse(null);
             if (senderId == null) return;
 
-            Long otherUserId = conv.getUser1().getId().equals(senderId)
-                    ? conv.getUser2().getId() : conv.getUser1().getId();
+            Long otherUserId = senderId.equals(user1Id) ? user2Id : user1Id;
             redisPubSubService.publish("/queue/typing/" + otherUserId,
                     Map.of("conversationId", conversationId,
                             "userId", senderId,

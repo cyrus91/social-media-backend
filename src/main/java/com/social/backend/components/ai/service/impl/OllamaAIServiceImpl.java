@@ -28,6 +28,11 @@ public class OllamaAIServiceImpl implements AIService {
     }
 
     @Override
+    public String generate(String prompt) {
+        return generateCaption(prompt, null, null);
+    }
+
+    @Override
     public String generateCaption(String partialText, List<String> imageUrls, String tone) {
         String prompt = buildCaptionPrompt(partialText, imageUrls, tone);
         return callOllama(prompt);
