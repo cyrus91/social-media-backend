@@ -9,6 +9,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/ai")
@@ -66,6 +67,13 @@ public class AIController {
 
         String reply = aiService.suggestReply(comment, postContext);
         return ResponseEntity.ok(new AIResponse(reply, "llama3.2"));
+    }
+
+    @PostMapping("/generate")
+    @Operation(summary = "Genera risposta AI generica")
+    public ResponseEntity<Map<String, String>> generate(@RequestBody Map<String, String> body) {
+        String result = aiService.generate(body.get("prompt"));
+        return ResponseEntity.ok(Map.of("result", result));
     }
 
     @PostMapping("/suggest-hashtags")
