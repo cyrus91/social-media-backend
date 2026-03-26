@@ -19,4 +19,10 @@ public interface MessageReactionRepository extends JpaRepository<MessageReaction
     @Transactional
     @Query("DELETE FROM MessageReaction r WHERE r.message.id = :messageId AND r.user.id = :userId")
     void deleteByMessageIdAndUserId(@Param("messageId") Long messageId, @Param("userId") Long userId);
+
+    // UPDATE diretto — evita che Hibernate usi la cache della lista EAGER di Message
+    @Modifying
+    @Transactional
+    @Query("UPDATE MessageReaction r SET r.emoji = :emoji WHERE r.message.id = :messageId AND r.user.id = :userId")
+    void updateEmoji(@Param("messageId") Long messageId, @Param("userId") Long userId, @Param("emoji") String emoji);
 }

@@ -179,25 +179,31 @@ public class MessagingServiceImpl implements MessagingService {
     @Override
     @Transactional
     public MessageDTO toggleReaction(Long messageId, Long userId, String emoji) {
-        Message msg = messageRepository.findById(messageId)
+        messageRepository.findById(messageId)
                 .orElseThrow(() -> new ResourceNotFoundException("Messaggio non trovato"));
         User user = getUser(userId);
+
         Optional<MessageReaction> existing = reactionRepository.findByMessageIdAndUserId(messageId, userId);
         if (existing.isPresent()) {
             if (existing.get().getEmoji().equals(emoji)) {
                 // Stessa emoji → rimuovi
                 reactionRepository.deleteByMessageIdAndUserId(messageId, userId);
             } else {
-                // Emoji diversa → aggiorna
-                existing.get().setEmoji(emoji);
-                reactionRepository.save(existing.get());
+                // Emoji diversa → aggiorna direttamente con query UPDATE (evita cache Hibernate)
+                reactionRepository.updateEmoji(messageId, userId, emoji);
             }
         } else {
+            // Nuova reazione — recupera messaggio fresh dal DB
+            Message freshMsg = messageRepository.findById(messageId).get();
             reactionRepository.save(MessageReaction.builder()
-                    .message(msg).user(user).emoji(emoji).build());
+                    .message(freshMsg).user(user).emoji(emoji).build());
         }
-        // Ricarica il messaggio con le reazioni aggiornate
-        return mapToMessageDTO(messageRepository.findById(messageId).get(), userId);
+
+        // flush + ricarica FRESH dal DB per avere la lista reactions aggiornata
+        reactionRepository.flush();
+        Message updated = messageRepository.findByIdWithReactions(messageId)
+                .orElseThrow(() -> new ResourceNotFoundException("Messaggio non trovato"));
+        return mapToMessageDTO(updated, userId);
     }
 
     @Override
