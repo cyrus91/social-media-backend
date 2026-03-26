@@ -71,8 +71,8 @@ public class Message {
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
-    // Reazioni — eager perché sono poche e sempre mostrate
-    @OneToMany(mappedBy = "message", cascade = CascadeType.ALL, fetch = FetchType.EAGER)
+    // Nessun EAGER — le reactions vengono caricate esplicitamente con findByIdWithReactions
+    @OneToMany(mappedBy = "message", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     @Builder.Default
     private List<MessageReaction> reactions = new ArrayList<>();
 }

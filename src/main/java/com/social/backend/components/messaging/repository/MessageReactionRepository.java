@@ -8,6 +8,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
 import java.util.Optional;
 
 @Repository
@@ -15,14 +16,18 @@ public interface MessageReactionRepository extends JpaRepository<MessageReaction
 
     Optional<MessageReaction> findByMessageIdAndUserId(Long messageId, Long userId);
 
+    List<MessageReaction> findByMessageId(Long messageId);
+
     @Modifying
     @Transactional
     @Query("DELETE FROM MessageReaction r WHERE r.message.id = :messageId AND r.user.id = :userId")
     void deleteByMessageIdAndUserId(@Param("messageId") Long messageId, @Param("userId") Long userId);
 
-    // UPDATE diretto — evita che Hibernate usi la cache della lista EAGER di Message
     @Modifying
     @Transactional
-    @Query("UPDATE MessageReaction r SET r.emoji = :emoji WHERE r.message.id = :messageId AND r.user.id = :userId")
-    void updateEmoji(@Param("messageId") Long messageId, @Param("userId") Long userId, @Param("emoji") String emoji);
+    @Query("UPDATE MessageReaction r SET r.emoji = :emoji " +
+            "WHERE r.message.id = :messageId AND r.user.id = :userId")
+    void updateEmoji(@Param("messageId") Long messageId,
+                     @Param("userId") Long userId,
+                     @Param("emoji") String emoji);
 }

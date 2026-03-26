@@ -40,9 +40,6 @@ public interface MessageRepository extends JpaRepository<Message, Long> {
             "AND m.sender.id != :userId AND m.isRead = false")
     void markAllAsRead(@Param("convId") Long convId, @Param("userId") Long userId);
 
-    // Carica messaggio con reactions in modo esplicito (evita cache EAGER stale)
-    @Query("SELECT m FROM Message m LEFT JOIN FETCH m.reactions r LEFT JOIN FETCH r.user WHERE m.id = :id")
-    Optional<Message> findByIdWithReactions(@Param("id") Long id);
     @Modifying
     @Transactional
     @Query("UPDATE Message m SET m.deletedForAll = true, m.content = null, m.imageUrl = null, m.audioUrl = null " +
