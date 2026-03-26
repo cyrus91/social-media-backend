@@ -17,6 +17,11 @@ public class S3StorageServiceImpl implements StorageService {
     }
 
     @Override
+    public String storeRaw(MultipartFile file, String directory) {
+        throw new UnsupportedOperationException("S3 Storage non ancora implementato");
+    }
+
+    @Override
     public void delete(String fileUrl) {
         throw new UnsupportedOperationException("S3 Storage non ancora implementato");
     }
