@@ -112,6 +112,13 @@ public class MessagingController {
         markReadAndNotify(conversationId, u.getUser().getId());
     }
 
+    @DeleteMapping("/conversations/{conversationId}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void deleteConversation(@PathVariable Long conversationId,
+                                   @AuthenticationPrincipal UserDetailsImpl u) {
+        messagingService.deleteConversation(conversationId, u.getUser().getId());
+    }
+
     @DeleteMapping("/messages/{messageId}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void deleteMessage(@PathVariable Long messageId,

@@ -32,4 +32,6 @@ public interface MessagingService {
 
     // Disappearing messages
     void setDisappearingMessages(Long conversationId, Long userId, Integer hoursToExpire);
+
+    void deleteConversation(Long conversationId, Long userId);
 }

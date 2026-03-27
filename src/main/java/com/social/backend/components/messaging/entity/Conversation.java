@@ -33,6 +33,14 @@ public class Conversation {
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
+    @Column(name = "hidden_for_user1", nullable = false)
+    @Builder.Default
+    private boolean hiddenForUser1 = false;
+
+    @Column(name = "hidden_for_user2", nullable = false)
+    @Builder.Default
+    private boolean hiddenForUser2 = false;
+
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 

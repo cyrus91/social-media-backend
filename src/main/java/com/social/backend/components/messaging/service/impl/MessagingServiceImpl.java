@@ -208,6 +208,21 @@ public class MessagingServiceImpl implements MessagingService {
 
     @Override
     @Transactional
+    public void deleteConversation(Long conversationId, Long userId) {
+        Conversation conv = conversationRepository.findById(conversationId)
+                .orElseThrow(() -> new ResourceNotFoundException("Conversazione non trovata"));
+        if (conv.getUser1().getId().equals(userId)) {
+            conv.setHiddenForUser1(true);
+        } else if (conv.getUser2().getId().equals(userId)) {
+            conv.setHiddenForUser2(true);
+        } else {
+            throw new ForbiddenException("Non autorizzato");
+        }
+        conversationRepository.save(conv);
+    }
+
+    @Override
+    @Transactional
     public void setDisappearingMessages(Long conversationId, Long userId, Integer hoursToExpire) {
         Conversation conv = conversationRepository.findById(conversationId)
                 .orElseThrow(() -> new ResourceNotFoundException("Conversazione non trovata"));

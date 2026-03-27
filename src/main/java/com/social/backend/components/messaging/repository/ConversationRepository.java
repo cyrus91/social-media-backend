@@ -22,7 +22,9 @@ public interface ConversationRepository extends JpaRepository<Conversation, Long
                                             @Param("userId2") Long userId2);
 
     // Tutte le conversazioni di un utente ordinate per ultimo messaggio
-    @Query("SELECT c FROM Conversation c WHERE c.user1.id = :userId OR c.user2.id = :userId " +
+    @Query("SELECT c FROM Conversation c WHERE " +
+            "(c.user1.id = :userId AND c.hiddenForUser1 = false) OR " +
+            "(c.user2.id = :userId AND c.hiddenForUser2 = false) " +
             "ORDER BY c.updatedAt DESC")
     List<Conversation> findByUserId(@Param("userId") Long userId);
 
