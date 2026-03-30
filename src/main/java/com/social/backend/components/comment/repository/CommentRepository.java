@@ -1,6 +1,5 @@
 package com.social.backend.components.comment.repository;
 
-
 import com.social.backend.components.comment.entity.Comment;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -15,29 +14,26 @@ import java.util.Optional;
 
 public interface CommentRepository extends JpaRepository<Comment, Long> {
 
-    List<Comment> findByPostIdOrderByCreatedAtAsc(Long postId);
-
-    // Versione non paginata
-    // Ritorna direttamente il postId senza lazy loading — usato per le notifiche
-    @Query("SELECT c.post.id FROM Comment c WHERE c.id = :id")
-    Optional<Long> findPostIdById(@Param("id") Long id);
-
-    // Carica commento con post e author già inizializzati — evita LazyInitializationException nelle notifiche
-    @Query("SELECT c FROM Comment c JOIN FETCH c.post JOIN FETCH c.author WHERE c.id = :id")
-    Optional<Comment> findByIdWithPost(@Param("id") Long id);
-
-    // Solo commenti principali (parent == null)
+    // Solo commenti principali (parent IS NULL) — lista
     @Query("SELECT c FROM Comment c WHERE c.post.id = :postId AND c.parent IS NULL ORDER BY c.createdAt ASC")
     List<Comment> findByPostId(@Param("postId") Long postId);
+
+    // Solo commenti principali (parent IS NULL) — paginata
+    @Query("SELECT c FROM Comment c WHERE c.post.id = :postId AND c.parent IS NULL ORDER BY c.createdAt ASC")
+    Page<Comment> findByPostId(@Param("postId") Long postId, Pageable pageable);
 
     // Risposte a un commento specifico
     @Query("SELECT c FROM Comment c WHERE c.parent.id = :parentId ORDER BY c.createdAt ASC")
     List<Comment> findReplies(@Param("parentId") Long parentId);
 
-    // Versione paginata
-    Page<Comment> findByPostId(Long postId, Pageable pageable);
+    // postId diretto senza lazy loading — per le notifiche in toggleReaction
+    @Query("SELECT c.post.id FROM Comment c WHERE c.id = :id")
+    Optional<Long> findPostIdById(@Param("id") Long id);
 
-    // conta commenti per post
+    // Commento con post e author già fetchati — evita LazyInitializationException
+    @Query("SELECT c FROM Comment c JOIN FETCH c.post JOIN FETCH c.author WHERE c.id = :id")
+    Optional<Comment> findByIdWithPost(@Param("id") Long id);
+
     int countByPostId(Long postId);
 
     @Modifying
@@ -49,6 +45,4 @@ public interface CommentRepository extends JpaRepository<Comment, Long> {
     @Transactional
     @Query("DELETE FROM Comment c WHERE c.author.id = :authorId")
     void deleteByAuthorId(@Param("authorId") Long authorId);
-
-
 }
