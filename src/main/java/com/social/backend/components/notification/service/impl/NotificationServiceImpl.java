@@ -42,12 +42,14 @@ public class NotificationServiceImpl implements NotificationService {
             return;
         }
 
-        // Verifica che non esista già una notifica identica
-        boolean exists = notificationRepository.existsByRecipientIdAndActorIdAndTypeAndPostIdAndCommentId(
-                recipientId, actorId, type, postId, commentId);
-
-        if (exists) {
-            return; // Evita duplicati
+        // Per REACTION non serve il duplicate check — viene gestito dal chiamante
+        // che cancella la notifica precedente prima di crearne una nuova
+        if (type != NotificationType.REACTION) {
+            boolean exists = notificationRepository.existsByRecipientIdAndActorIdAndTypeAndPostIdAndCommentId(
+                    recipientId, actorId, type, postId, commentId);
+            if (exists) {
+                return;
+            }
         }
 
         // Trova utenti
