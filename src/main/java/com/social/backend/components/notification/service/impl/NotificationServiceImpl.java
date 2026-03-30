@@ -44,7 +44,7 @@ public class NotificationServiceImpl implements NotificationService {
 
         // Per REACTION non serve il duplicate check — viene gestito dal chiamante
         // che cancella la notifica precedente prima di crearne una nuova
-        if (type != NotificationType.REACTION) {
+        if (type != NotificationType.REACTION && type != NotificationType.MENTION) {
             boolean exists = notificationRepository.existsByRecipientIdAndActorIdAndTypeAndPostIdAndCommentId(
                     recipientId, actorId, type, postId, commentId);
             if (exists) {

@@ -8,6 +8,7 @@ import com.social.backend.components.comment.entity.CommentReaction;
 import com.social.backend.components.comment.repository.CommentReactionRepository;
 import com.social.backend.components.comment.repository.CommentRepository;
 import com.social.backend.components.comment.service.CommentService;
+import com.social.backend.components.mention.MentionService;
 import com.social.backend.components.notification.enums.NotificationType;
 import com.social.backend.components.notification.repository.NotificationRepository;
 import com.social.backend.components.notification.service.NotificationService;
@@ -41,19 +42,22 @@ public class CommentServiceImpl implements CommentService {
     private final NotificationService notificationService;
     private final CommentReactionRepository reactionRepository;
     private final NotificationRepository notificationRepository;
+    private final MentionService mentionService;
 
     public CommentServiceImpl(CommentRepository commentRepository,
                               PostRepository postRepository,
                               UserRepository userRepository,
                               NotificationService notificationService,
                               CommentReactionRepository reactionRepository,
-                              NotificationRepository notificationRepository) {
+                              NotificationRepository notificationRepository,
+                              MentionService mentionService) {
         this.commentRepository = commentRepository;
         this.postRepository = postRepository;
         this.userRepository = userRepository;
         this.notificationService = notificationService;
         this.reactionRepository = reactionRepository;
         this.notificationRepository = notificationRepository;
+        this.mentionService = mentionService;
     }
 
     @Override
@@ -95,6 +99,10 @@ public class CommentServiceImpl implements CommentService {
                         saved.getId(), author.getUsername() + " ha commentato il tuo post");
             }
         }
+
+        // Processa mention @username nel commento
+        mentionService.processMentions(request.getContent(), authorId,
+                request.getPostId(), saved.getId(), author.getUsername());
 
         return mapToResponse(saved, authorId);
     }

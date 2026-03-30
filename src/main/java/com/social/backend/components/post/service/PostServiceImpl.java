@@ -20,6 +20,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import com.social.backend.components.mention.MentionService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -40,6 +41,7 @@ public class PostServiceImpl implements PostService {
     private final FollowRepository followRepository;
     private final StorageService storageService;
     private final NotificationRepository notificationRepository;
+    private final MentionService mentionService;
 
     @Value("${storage.local.posts-dir}")
     private String postsDir;
@@ -49,7 +51,8 @@ public class PostServiceImpl implements PostService {
                            LikeRepository likeRepository,
                            CommentRepository commentRepository,
                            FollowRepository followRepository,
-                           StorageService storageService, NotificationRepository notificationRepository) {
+                           StorageService storageService, NotificationRepository notificationRepository,
+                           MentionService mentionService) {
         this.postRepository = postRepository;
         this.userRepository = userRepository;
         this.likeRepository = likeRepository;
@@ -57,6 +60,7 @@ public class PostServiceImpl implements PostService {
         this.followRepository = followRepository;
         this.storageService = storageService;
         this.notificationRepository = notificationRepository;
+        this.mentionService = mentionService;
     }
 
     // ============================================
@@ -75,6 +79,8 @@ public class PostServiceImpl implements PostService {
                 .build();
 
         Post savedPost = postRepository.save(post);
+        mentionService.processMentions(request.getContent(), userId, savedPost.getId(), null,
+                userRepository.findById(userId).map(u -> u.getUsername()).orElse(""));
 
         System.out.println(" Post creato - ID: " + savedPost.getId());
 
@@ -107,6 +113,8 @@ public class PostServiceImpl implements PostService {
                 .build();
 
         Post savedPost = postRepository.save(post);
+        mentionService.processMentions(request.getContent(), userId, savedPost.getId(), null,
+                userRepository.findById(userId).map(u -> u.getUsername()).orElse(""));
 
         System.out.println(" Post con immagine creato - ID: " + savedPost.getId());
 
