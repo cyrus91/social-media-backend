@@ -4,8 +4,6 @@ import com.social.backend.components.comment.dto.CommentResponse;
 import com.social.backend.components.comment.dto.CreateCommentRequest;
 import com.social.backend.components.comment.dto.UpdateCommentRequest;
 import com.social.backend.components.comment.service.CommentService;
-import com.social.backend.components.comment.service.impl.CommentServiceImpl;
-import com.social.backend.components.user.entity.User;
 import com.social.backend.security.UserDetailsImpl;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
@@ -23,12 +21,9 @@ import java.util.Map;
 public class CommentController {
 
     private final CommentService commentService;
-    private final CommentServiceImpl commentServiceImpl;
 
-    public CommentController(CommentService commentService,
-                             CommentServiceImpl commentServiceImpl) {
+    public CommentController(CommentService commentService) {
         this.commentService = commentService;
-        this.commentServiceImpl = commentServiceImpl;
     }
 
     @PostMapping
@@ -52,9 +47,8 @@ public class CommentController {
             @AuthenticationPrincipal UserDetailsImpl userDetails) {
 
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.ASC, "createdAt"));
-        // Passa userId per popolare myReaction — fondamentale per le reaction UI
         Long userId = userDetails != null ? userDetails.getUser().getId() : null;
-        return commentServiceImpl.listByPost(postId, pageable, userId);
+        return commentService.listByPost(postId, pageable, userId);
     }
 
     @PutMapping("/{id}")

@@ -18,10 +18,12 @@ public interface CommentService {
 
     Page<CommentResponse> listByPost(Long postId, Pageable pageable);
 
+    // Con userId per popolare myReaction — usato dal controller autenticato
+    Page<CommentResponse> listByPost(Long postId, Pageable pageable, Long userId);
+
     CommentResponse update(Long currentUserId, Long commentId, UpdateCommentRequest request);
 
     void delete(Long currentUserId, Long commentId);
 
-    // Reazioni
     CommentResponse toggleReaction(Long commentId, Long userId, String emoji);
 }

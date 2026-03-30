@@ -19,6 +19,8 @@ import com.social.backend.common.exception.ForbiddenException;
 import com.social.backend.common.exception.ResourceNotFoundException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -30,6 +32,8 @@ import java.util.stream.Collectors;
 
 @Service
 public class CommentServiceImpl implements CommentService {
+
+    private static final Logger log = LoggerFactory.getLogger(CommentServiceImpl.class);
 
     private final CommentRepository commentRepository;
     private final PostRepository postRepository;
@@ -111,6 +115,7 @@ public class CommentServiceImpl implements CommentService {
     }
 
     // Versione paginata con userId — usata dal controller autenticato
+    @Override
     public Page<CommentResponse> listByPost(Long postId, Pageable pageable, Long userId) {
         if (!postRepository.existsById(postId))
             throw new ResourceNotFoundException("Post non trovato con ID: " + postId);
@@ -162,6 +167,7 @@ public class CommentServiceImpl implements CommentService {
         // Carica postId con query diretta — nessun lazy loading coinvolto
         Long postId = commentRepository.findPostIdById(commentId).orElse(null);
         Long authorId = comment.getAuthor().getId();
+        log.info("🔔 toggleReaction: commentId={} userId={} emoji={} authorId={} postId={}", commentId, userId, emoji, authorId, postId);
 
         Optional<CommentReaction> existing = reactionRepository.findByCommentIdAndUserId(commentId, userId);
         boolean sendNotification = false;
@@ -183,6 +189,7 @@ public class CommentServiceImpl implements CommentService {
         }
 
         // Notifica — elimina la precedente per questo commento+utente per evitare il duplicate check
+        log.info("🔔 sendNotification={} authorId={} userId={} sameUser={} postId={}", sendNotification, authorId, userId, authorId.equals(userId), postId);
         if (sendNotification && !authorId.equals(userId) && postId != null) {
             notificationRepository.deleteByRecipientActorTypeComment(
                     authorId, userId, NotificationType.REACTION, commentId);
