@@ -68,10 +68,25 @@ public class CommentServiceImpl implements CommentService {
 
         Comment saved = commentRepository.save(comment);
 
-        notificationService.createNotification(
-                post.getAuthor().getId(), authorId,
-                NotificationType.COMMENT, request.getPostId(),
-                saved.getId(), author.getUsername() + " ha commentato il tuo post");
+        if (request.getParentId() != null) {
+            // Risposta a un commento → notifica all'autore del commento padre
+            commentRepository.findById(request.getParentId()).ifPresent(parent -> {
+                if (!parent.getAuthor().getId().equals(authorId)) {
+                    notificationService.createNotification(
+                            parent.getAuthor().getId(), authorId,
+                            NotificationType.COMMENT, request.getPostId(),
+                            saved.getId(), author.getUsername() + " ha risposto al tuo commento");
+                }
+            });
+        } else {
+            // Commento normale → notifica all'autore del post
+            if (!post.getAuthor().getId().equals(authorId)) {
+                notificationService.createNotification(
+                        post.getAuthor().getId(), authorId,
+                        NotificationType.COMMENT, request.getPostId(),
+                        saved.getId(), author.getUsername() + " ha commentato il tuo post");
+            }
+        }
 
         return mapToResponse(saved, authorId);
     }
@@ -139,10 +154,24 @@ public class CommentServiceImpl implements CommentService {
                 reactionRepository.deleteByCommentIdAndUserId(commentId, userId);
             } else {
                 reactionRepository.updateEmoji(commentId, userId, emoji);
+                // Notifica cambio reaction (solo se l'autore non è chi reagisce)
+                if (!comment.getAuthor().getId().equals(userId)) {
+                    notificationService.createNotification(
+                            comment.getAuthor().getId(), userId,
+                            NotificationType.REACTION, comment.getPost().getId(),
+                            commentId, user.getUsername() + " ha reagito al tuo commento con " + emoji);
+                }
             }
         } else {
             reactionRepository.save(CommentReaction.builder()
                     .comment(comment).user(user).emoji(emoji).build());
+            // Notifica nuova reaction
+            if (!comment.getAuthor().getId().equals(userId)) {
+                notificationService.createNotification(
+                        comment.getAuthor().getId(), userId,
+                        NotificationType.REACTION, comment.getPost().getId(),
+                        commentId, user.getUsername() + " ha reagito al tuo commento con " + emoji);
+            }
         }
         return mapToResponse(commentRepository.findById(commentId).get(), userId);
     }
