@@ -143,7 +143,8 @@ public class CommentServiceImpl implements CommentService {
     @Override
     @Transactional
     public CommentResponse toggleReaction(Long commentId, Long userId, String emoji) {
-        Comment comment = commentRepository.findById(commentId)
+        // JOIN FETCH su post e author — evita LazyInitializationException nelle notifiche
+        Comment comment = commentRepository.findByIdWithPost(commentId)
                 .orElseThrow(() -> new ResourceNotFoundException("Commento non trovato"));
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("Utente non trovato"));

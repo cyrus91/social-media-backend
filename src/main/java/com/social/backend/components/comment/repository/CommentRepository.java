@@ -11,12 +11,17 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Optional;
 
 public interface CommentRepository extends JpaRepository<Comment, Long> {
 
     List<Comment> findByPostIdOrderByCreatedAtAsc(Long postId);
 
     // Versione non paginata
+    // Carica commento con post e author già inizializzati — evita LazyInitializationException nelle notifiche
+    @Query("SELECT c FROM Comment c JOIN FETCH c.post JOIN FETCH c.author WHERE c.id = :id")
+    Optional<Comment> findByIdWithPost(@Param("id") Long id);
+
     // Solo commenti principali (parent == null)
     @Query("SELECT c FROM Comment c WHERE c.post.id = :postId AND c.parent IS NULL ORDER BY c.createdAt ASC")
     List<Comment> findByPostId(@Param("postId") Long postId);
