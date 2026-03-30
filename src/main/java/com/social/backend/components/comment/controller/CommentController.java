@@ -4,6 +4,7 @@ import com.social.backend.components.comment.dto.CommentResponse;
 import com.social.backend.components.comment.dto.CreateCommentRequest;
 import com.social.backend.components.comment.dto.UpdateCommentRequest;
 import com.social.backend.components.comment.service.CommentService;
+import com.social.backend.components.comment.service.impl.CommentServiceImpl;
 import com.social.backend.components.user.entity.User;
 import com.social.backend.security.UserDetailsImpl;
 import jakarta.validation.Valid;
@@ -15,16 +16,19 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/comments")
 public class CommentController {
 
     private final CommentService commentService;
+    private final CommentServiceImpl commentServiceImpl;
 
-    public CommentController(CommentService commentService) {
+    public CommentController(CommentService commentService,
+                             CommentServiceImpl commentServiceImpl) {
         this.commentService = commentService;
+        this.commentServiceImpl = commentServiceImpl;
     }
 
     @PostMapping
@@ -32,8 +36,7 @@ public class CommentController {
     public CommentResponse create(
             @AuthenticationPrincipal UserDetailsImpl userDetails,
             @Valid @RequestBody CreateCommentRequest request) {
-        User currentUser = userDetails.getUser();
-        return commentService.create(currentUser.getId(), request);
+        return commentService.create(userDetails.getUser().getId(), request);
     }
 
     @GetMapping("/{id}")
@@ -41,7 +44,6 @@ public class CommentController {
         return commentService.getById(id);
     }
 
-    // GET commenti per post con paginazione
     @GetMapping("/post/{postId}")
     public Page<CommentResponse> listByPost(
             @PathVariable Long postId,
@@ -50,16 +52,9 @@ public class CommentController {
             @AuthenticationPrincipal UserDetailsImpl userDetails) {
 
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.ASC, "createdAt"));
-        // Passa userId per calcolare myReaction — null se non autenticato
-        if (userDetails != null) {
-            // Usa la versione con userId per includere myReaction
-            return commentService.listByPost(postId, pageable)
-                    .map(c -> {
-                        // myReaction già calcolato nel service tramite listByPost(postId, pageable)
-                        return c;
-                    });
-        }
-        return commentService.listByPost(postId, pageable);
+        // Passa userId per popolare myReaction — fondamentale per le reaction UI
+        Long userId = userDetails != null ? userDetails.getUser().getId() : null;
+        return commentServiceImpl.listByPost(postId, pageable, userId);
     }
 
     @PutMapping("/{id}")
@@ -67,8 +62,7 @@ public class CommentController {
             @AuthenticationPrincipal UserDetailsImpl userDetails,
             @PathVariable Long id,
             @Valid @RequestBody UpdateCommentRequest request) {
-        User currentUser = userDetails.getUser();
-        return commentService.update(currentUser.getId(), id, request);
+        return commentService.update(userDetails.getUser().getId(), id, request);
     }
 
     @DeleteMapping("/{id}")
@@ -76,14 +70,13 @@ public class CommentController {
     public void delete(
             @AuthenticationPrincipal UserDetailsImpl userDetails,
             @PathVariable Long id) {
-        User currentUser = userDetails.getUser();
-        commentService.delete(currentUser.getId(), id);
+        commentService.delete(userDetails.getUser().getId(), id);
     }
 
     @PostMapping("/{id}/reactions")
     public CommentResponse toggleReaction(
             @PathVariable Long id,
-            @RequestBody java.util.Map<String, String> body,
+            @RequestBody Map<String, String> body,
             @AuthenticationPrincipal UserDetailsImpl userDetails) {
         return commentService.toggleReaction(id, userDetails.getUser().getId(), body.get("emoji"));
     }

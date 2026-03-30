@@ -110,6 +110,13 @@ public class CommentServiceImpl implements CommentService {
                 .map(c -> mapToResponse(c, null)).collect(Collectors.toList());
     }
 
+    // Versione paginata con userId — usata dal controller autenticato
+    public Page<CommentResponse> listByPost(Long postId, Pageable pageable, Long userId) {
+        if (!postRepository.existsById(postId))
+            throw new ResourceNotFoundException("Post non trovato con ID: " + postId);
+        return commentRepository.findByPostId(postId, pageable).map(c -> mapToResponse(c, userId));
+    }
+
     // Versione con userId per mostrare myReaction
     public List<CommentResponse> listByPost(Long postId, Long userId) {
         if (!postRepository.existsById(postId))
