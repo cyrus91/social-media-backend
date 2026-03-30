@@ -9,6 +9,7 @@ import com.social.backend.components.comment.repository.CommentReactionRepositor
 import com.social.backend.components.comment.repository.CommentRepository;
 import com.social.backend.components.comment.service.CommentService;
 import com.social.backend.components.notification.enums.NotificationType;
+import com.social.backend.components.notification.repository.NotificationRepository;
 import com.social.backend.components.notification.service.NotificationService;
 import com.social.backend.components.post.entity.Post;
 import com.social.backend.components.post.repository.PostRepository;
@@ -35,17 +36,20 @@ public class CommentServiceImpl implements CommentService {
     private final UserRepository userRepository;
     private final NotificationService notificationService;
     private final CommentReactionRepository reactionRepository;
+    private final NotificationRepository notificationRepository;
 
     public CommentServiceImpl(CommentRepository commentRepository,
                               PostRepository postRepository,
                               UserRepository userRepository,
                               NotificationService notificationService,
-                              CommentReactionRepository reactionRepository) {
+                              CommentReactionRepository reactionRepository,
+                              NotificationRepository notificationRepository) {
         this.commentRepository = commentRepository;
         this.postRepository = postRepository;
         this.userRepository = userRepository;
         this.notificationService = notificationService;
         this.reactionRepository = reactionRepository;
+        this.notificationRepository = notificationRepository;
     }
 
     @Override
@@ -143,37 +147,44 @@ public class CommentServiceImpl implements CommentService {
     @Override
     @Transactional
     public CommentResponse toggleReaction(Long commentId, Long userId, String emoji) {
-        // JOIN FETCH su post e author — evita LazyInitializationException nelle notifiche
-        Comment comment = commentRepository.findByIdWithPost(commentId)
+        Comment comment = commentRepository.findById(commentId)
                 .orElseThrow(() -> new ResourceNotFoundException("Commento non trovato"));
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("Utente non trovato"));
 
+        // Carica postId con query diretta — nessun lazy loading coinvolto
+        Long postId = commentRepository.findPostIdById(commentId).orElse(null);
+        Long authorId = comment.getAuthor().getId();
+
         Optional<CommentReaction> existing = reactionRepository.findByCommentIdAndUserId(commentId, userId);
+        boolean sendNotification = false;
+
         if (existing.isPresent()) {
             if (existing.get().getEmoji().equals(emoji)) {
+                // Stesso emoji → toggle off
                 reactionRepository.deleteByCommentIdAndUserId(commentId, userId);
             } else {
+                // Emoji diversa → aggiorna e notifica
                 reactionRepository.updateEmoji(commentId, userId, emoji);
-                // Notifica cambio reaction (solo se l'autore non è chi reagisce)
-                if (!comment.getAuthor().getId().equals(userId)) {
-                    notificationService.createNotification(
-                            comment.getAuthor().getId(), userId,
-                            NotificationType.REACTION, comment.getPost().getId(),
-                            commentId, user.getUsername() + " ha reagito al tuo commento con " + emoji);
-                }
+                sendNotification = true;
             }
         } else {
+            // Nuova reazione
             reactionRepository.save(CommentReaction.builder()
                     .comment(comment).user(user).emoji(emoji).build());
-            // Notifica nuova reaction
-            if (!comment.getAuthor().getId().equals(userId)) {
-                notificationService.createNotification(
-                        comment.getAuthor().getId(), userId,
-                        NotificationType.REACTION, comment.getPost().getId(),
-                        commentId, user.getUsername() + " ha reagito al tuo commento con " + emoji);
-            }
+            sendNotification = true;
         }
+
+        // Notifica — elimina la precedente per questo commento+utente per evitare il duplicate check
+        if (sendNotification && !authorId.equals(userId) && postId != null) {
+            notificationRepository.deleteByRecipientActorTypeComment(
+                    authorId, userId, NotificationType.REACTION, commentId);
+            notificationService.createNotification(
+                    authorId, userId,
+                    NotificationType.REACTION, postId,
+                    commentId, user.getUsername() + " ha reagito al tuo commento con " + emoji);
+        }
+
         return mapToResponse(commentRepository.findById(commentId).get(), userId);
     }
 

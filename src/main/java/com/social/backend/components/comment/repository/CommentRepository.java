@@ -18,6 +18,10 @@ public interface CommentRepository extends JpaRepository<Comment, Long> {
     List<Comment> findByPostIdOrderByCreatedAtAsc(Long postId);
 
     // Versione non paginata
+    // Ritorna direttamente il postId senza lazy loading — usato per le notifiche
+    @Query("SELECT c.post.id FROM Comment c WHERE c.id = :id")
+    Optional<Long> findPostIdById(@Param("id") Long id);
+
     // Carica commento con post e author già inizializzati — evita LazyInitializationException nelle notifiche
     @Query("SELECT c FROM Comment c JOIN FETCH c.post JOIN FETCH c.author WHERE c.id = :id")
     Optional<Comment> findByIdWithPost(@Param("id") Long id);

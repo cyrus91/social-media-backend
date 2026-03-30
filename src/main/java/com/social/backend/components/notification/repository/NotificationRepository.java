@@ -6,6 +6,8 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -29,6 +31,16 @@ public interface NotificationRepository extends JpaRepository<Notification, Long
     void markAllAsReadByRecipientId(@Param("recipientId") Long recipientId);
 
     // Verifica se esiste già una notifica identica (per evitare duplicati)
+    // Elimina notifica precedente per stesso autore/attore/tipo/commento (evita duplicate check)
+    @Modifying(clearAutomatically = true)
+    @Transactional
+    @Query("DELETE FROM Notification n WHERE n.recipient.id = :recipientId AND n.actor.id = :actorId " +
+            "AND n.type = :type AND n.commentId = :commentId")
+    void deleteByRecipientActorTypeComment(@Param("recipientId") Long recipientId,
+                                           @Param("actorId") Long actorId,
+                                           @Param("type") NotificationType type,
+                                           @Param("commentId") Long commentId);
+
     boolean existsByRecipientIdAndActorIdAndTypeAndPostIdAndCommentId(
             Long recipientId, Long actorId, NotificationType type, Long postId, Long commentId);
 
