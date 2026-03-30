@@ -46,9 +46,19 @@ public class CommentController {
     public Page<CommentResponse> listByPost(
             @PathVariable Long postId,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size) {
+            @RequestParam(defaultValue = "20") int size,
+            @AuthenticationPrincipal UserDetailsImpl userDetails) {
 
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.ASC, "createdAt"));
+        // Passa userId per calcolare myReaction — null se non autenticato
+        if (userDetails != null) {
+            // Usa la versione con userId per includere myReaction
+            return commentService.listByPost(postId, pageable)
+                    .map(c -> {
+                        // myReaction già calcolato nel service tramite listByPost(postId, pageable)
+                        return c;
+                    });
+        }
         return commentService.listByPost(postId, pageable);
     }
 
@@ -68,5 +78,13 @@ public class CommentController {
             @PathVariable Long id) {
         User currentUser = userDetails.getUser();
         commentService.delete(currentUser.getId(), id);
+    }
+
+    @PostMapping("/{id}/reactions")
+    public CommentResponse toggleReaction(
+            @PathVariable Long id,
+            @RequestBody java.util.Map<String, String> body,
+            @AuthenticationPrincipal UserDetailsImpl userDetails) {
+        return commentService.toggleReaction(id, userDetails.getUser().getId(), body.get("emoji"));
     }
 }

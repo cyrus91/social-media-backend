@@ -4,6 +4,8 @@ import com.social.backend.components.comment.dto.CommentResponse;
 import com.social.backend.components.comment.dto.CreateCommentRequest;
 import com.social.backend.components.comment.dto.UpdateCommentRequest;
 import com.social.backend.components.comment.entity.Comment;
+import com.social.backend.components.comment.entity.CommentReaction;
+import com.social.backend.components.comment.repository.CommentReactionRepository;
 import com.social.backend.components.comment.repository.CommentRepository;
 import com.social.backend.components.comment.service.CommentService;
 import com.social.backend.components.notification.enums.NotificationType;
@@ -17,9 +19,12 @@ import com.social.backend.common.exception.ResourceNotFoundException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.ZoneId;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
@@ -29,22 +34,24 @@ public class CommentServiceImpl implements CommentService {
     private final PostRepository postRepository;
     private final UserRepository userRepository;
     private final NotificationService notificationService;
+    private final CommentReactionRepository reactionRepository;
 
     public CommentServiceImpl(CommentRepository commentRepository,
                               PostRepository postRepository,
                               UserRepository userRepository,
-                              NotificationService notificationService) {
+                              NotificationService notificationService,
+                              CommentReactionRepository reactionRepository) {
         this.commentRepository = commentRepository;
         this.postRepository = postRepository;
         this.userRepository = userRepository;
         this.notificationService = notificationService;
+        this.reactionRepository = reactionRepository;
     }
 
     @Override
     public CommentResponse create(Long authorId, CreateCommentRequest request) {
         Post post = postRepository.findById(request.getPostId())
                 .orElseThrow(() -> new ResourceNotFoundException("Post non trovato con ID: " + request.getPostId()));
-
         User author = userRepository.findById(authorId)
                 .orElseThrow(() -> new ResourceNotFoundException("Utente non trovato con ID: " + authorId));
 
@@ -52,91 +59,108 @@ public class CommentServiceImpl implements CommentService {
         comment.setContent(request.getContent());
         comment.setPost(post);
         comment.setAuthor(author);
+        Comment saved = commentRepository.save(comment);
 
-        Comment savedComment = commentRepository.save(comment);
-
-        // AGGIUNGI NOTIFICA
-        String message = author.getUsername() + " ha commentato il tuo post";
         notificationService.createNotification(
-                post.getAuthor().getId(),   // Destinatario: autore del post
-                authorId,                    // Attore: chi ha commentato
-                NotificationType.COMMENT,    // Tipo
-                request.getPostId(),         // Post relativo
-                savedComment.getId(),        // Commento relativo
-                message                      // Messaggio
-        );
+                post.getAuthor().getId(), authorId,
+                NotificationType.COMMENT, request.getPostId(),
+                saved.getId(), author.getUsername() + " ha commentato il tuo post");
 
-        return mapToResponse(savedComment);
+        return mapToResponse(saved, authorId);
     }
 
     @Override
     public CommentResponse getById(Long id) {
-        Comment comment = commentRepository.findById(id)
+        Comment c = commentRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Commento non trovato con ID: " + id));
-        return mapToResponse(comment);
+        return mapToResponse(c, null);
     }
 
     @Override
     public List<CommentResponse> listByPost(Long postId) {
-        if (!postRepository.existsById(postId)) {
+        if (!postRepository.existsById(postId))
             throw new ResourceNotFoundException("Post non trovato con ID: " + postId);
-        }
+        return commentRepository.findByPostId(postId).stream()
+                .map(c -> mapToResponse(c, null)).collect(Collectors.toList());
+    }
 
-        List<Comment> comments = commentRepository.findByPostId(postId);
-        return comments.stream()
-                .map(this::mapToResponse)
-                .collect(Collectors.toList());
+    // Versione con userId per mostrare myReaction
+    public List<CommentResponse> listByPost(Long postId, Long userId) {
+        if (!postRepository.existsById(postId))
+            throw new ResourceNotFoundException("Post non trovato con ID: " + postId);
+        return commentRepository.findByPostId(postId).stream()
+                .map(c -> mapToResponse(c, userId)).collect(Collectors.toList());
     }
 
     @Override
     public Page<CommentResponse> listByPost(Long postId, Pageable pageable) {
-        if (!postRepository.existsById(postId)) {
+        if (!postRepository.existsById(postId))
             throw new ResourceNotFoundException("Post non trovato con ID: " + postId);
-        }
-
-        Page<Comment> comments = commentRepository.findByPostId(postId, pageable);
-        return comments.map(this::mapToResponse);
+        return commentRepository.findByPostId(postId, pageable).map(c -> mapToResponse(c, null));
     }
 
     @Override
     public CommentResponse update(Long currentUserId, Long commentId, UpdateCommentRequest request) {
-        Comment comment = commentRepository.findById(commentId)
+        Comment c = commentRepository.findById(commentId)
                 .orElseThrow(() -> new ResourceNotFoundException("Commento non trovato con ID: " + commentId));
-
-        if (!comment.getAuthor().getId().equals(currentUserId)) {
+        if (!c.getAuthor().getId().equals(currentUserId))
             throw new ForbiddenException("Non puoi modificare un commento di un altro utente");
-        }
-
-        comment.setContent(request.getContent());
-        Comment updatedComment = commentRepository.save(comment);
-        return mapToResponse(updatedComment);
+        c.setContent(request.getContent());
+        return mapToResponse(commentRepository.save(c), currentUserId);
     }
 
     @Override
     public void delete(Long currentUserId, Long commentId) {
-        Comment comment = commentRepository.findById(commentId)
+        Comment c = commentRepository.findById(commentId)
                 .orElseThrow(() -> new ResourceNotFoundException("Commento non trovato con ID: " + commentId));
-
-        if (!comment.getAuthor().getId().equals(currentUserId)) {
+        if (!c.getAuthor().getId().equals(currentUserId))
             throw new ForbiddenException("Non puoi eliminare un commento di un altro utente");
-        }
-
-        commentRepository.delete(comment);
+        commentRepository.delete(c);
     }
 
-    private CommentResponse mapToResponse(Comment comment) {
-        CommentResponse response = new CommentResponse();
-        response.setId(comment.getId());
-        response.setContent(comment.getContent());
-        response.setPostId(comment.getPost().getId());
-        response.setAuthorId(comment.getAuthor().getId());
-        response.setAuthorUsername(comment.getAuthor().getUsername());
+    @Override
+    @Transactional
+    public CommentResponse toggleReaction(Long commentId, Long userId, String emoji) {
+        Comment comment = commentRepository.findById(commentId)
+                .orElseThrow(() -> new ResourceNotFoundException("Commento non trovato"));
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("Utente non trovato"));
 
-        response.setCreatedAt(comment.getCreatedAt().atZone(ZoneId.systemDefault()).toInstant());
-
-        if (comment.getUpdatedAt() != null) {
-            response.setUpdatedAt(comment.getUpdatedAt().atZone(ZoneId.systemDefault()).toInstant());
+        Optional<CommentReaction> existing = reactionRepository.findByCommentIdAndUserId(commentId, userId);
+        if (existing.isPresent()) {
+            if (existing.get().getEmoji().equals(emoji)) {
+                reactionRepository.deleteByCommentIdAndUserId(commentId, userId);
+            } else {
+                reactionRepository.updateEmoji(commentId, userId, emoji);
+            }
+        } else {
+            reactionRepository.save(CommentReaction.builder()
+                    .comment(comment).user(user).emoji(emoji).build());
         }
-        return response;
+        return mapToResponse(commentRepository.findById(commentId).get(), userId);
+    }
+
+    private CommentResponse mapToResponse(Comment comment, Long currentUserId) {
+        List<CommentReaction> reactions = reactionRepository.findByCommentId(comment.getId());
+        Map<String, Long> reactionMap = reactions.stream()
+                .collect(Collectors.groupingBy(CommentReaction::getEmoji, Collectors.counting()));
+        String myReaction = currentUserId == null ? null : reactions.stream()
+                .filter(r -> r.getUser().getId().equals(currentUserId))
+                .map(CommentReaction::getEmoji)
+                .findFirst().orElse(null);
+
+        return CommentResponse.builder()
+                .id(comment.getId())
+                .content(comment.getContent())
+                .postId(comment.getPost().getId())
+                .authorId(comment.getAuthor().getId())
+                .authorUsername(comment.getAuthor().getUsername())
+                .authorAvatarUrl(comment.getAuthor().getAvatarUrl())
+                .createdAt(comment.getCreatedAt().atZone(ZoneId.systemDefault()).toInstant())
+                .updatedAt(comment.getUpdatedAt() != null
+                        ? comment.getUpdatedAt().atZone(ZoneId.systemDefault()).toInstant() : null)
+                .reactions(reactionMap)
+                .myReaction(myReaction)
+                .build();
     }
 }

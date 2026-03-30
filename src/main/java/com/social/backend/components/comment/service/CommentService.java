@@ -14,13 +14,14 @@ public interface CommentService {
 
     CommentResponse getById(Long id);
 
-    // Per compatibilità con il controller, lascia questo metodo non paginato
     List<CommentResponse> listByPost(Long postId);
 
-    // ListByPost paginato
     Page<CommentResponse> listByPost(Long postId, Pageable pageable);
 
     CommentResponse update(Long currentUserId, Long commentId, UpdateCommentRequest request);
 
     void delete(Long currentUserId, Long commentId);
+
+    // Reazioni
+    CommentResponse toggleReaction(Long commentId, Long userId, String emoji);
 }
