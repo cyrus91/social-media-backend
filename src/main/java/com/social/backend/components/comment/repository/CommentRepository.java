@@ -17,7 +17,13 @@ public interface CommentRepository extends JpaRepository<Comment, Long> {
     List<Comment> findByPostIdOrderByCreatedAtAsc(Long postId);
 
     // Versione non paginata
-    List<Comment> findByPostId(Long postId);
+    // Solo commenti principali (parent == null)
+    @Query("SELECT c FROM Comment c WHERE c.post.id = :postId AND c.parent IS NULL ORDER BY c.createdAt ASC")
+    List<Comment> findByPostId(@Param("postId") Long postId);
+
+    // Risposte a un commento specifico
+    @Query("SELECT c FROM Comment c WHERE c.parent.id = :parentId ORDER BY c.createdAt ASC")
+    List<Comment> findReplies(@Param("parentId") Long parentId);
 
     // Versione paginata
     Page<Comment> findByPostId(Long postId, Pageable pageable);

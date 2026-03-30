@@ -59,6 +59,13 @@ public class CommentServiceImpl implements CommentService {
         comment.setContent(request.getContent());
         comment.setPost(post);
         comment.setAuthor(author);
+
+        // Risposta a un commento esistente
+        if (request.getParentId() != null) {
+            commentRepository.findById(request.getParentId())
+                    .ifPresent(comment::setParent);
+        }
+
         Comment saved = commentRepository.save(comment);
 
         notificationService.createNotification(
@@ -149,10 +156,18 @@ public class CommentServiceImpl implements CommentService {
                 .map(CommentReaction::getEmoji)
                 .findFirst().orElse(null);
 
+        // Carica risposte (solo per commenti principali — no ricorsione infinita)
+        List<CommentResponse> replies = comment.getParent() == null
+                ? commentRepository.findReplies(comment.getId()).stream()
+                .map(r -> mapToResponse(r, currentUserId))
+                .collect(Collectors.toList())
+                : null;
+
         return CommentResponse.builder()
                 .id(comment.getId())
                 .content(comment.getContent())
                 .postId(comment.getPost().getId())
+                .parentId(comment.getParent() != null ? comment.getParent().getId() : null)
                 .authorId(comment.getAuthor().getId())
                 .authorUsername(comment.getAuthor().getUsername())
                 .authorAvatarUrl(comment.getAuthor().getAvatarUrl())
@@ -161,6 +176,7 @@ public class CommentServiceImpl implements CommentService {
                         ? comment.getUpdatedAt().atZone(ZoneId.systemDefault()).toInstant() : null)
                 .reactions(reactionMap)
                 .myReaction(myReaction)
+                .replies(replies)
                 .build();
     }
 }

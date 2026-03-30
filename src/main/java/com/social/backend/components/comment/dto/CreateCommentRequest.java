@@ -14,4 +14,7 @@ public class CreateCommentRequest {
     @NotBlank(message = "Il contenuto non può essere vuoto")
     @Size(max = 500, message = "Il contenuto non può superare 500 caratteri")
     private String content;
+
+    // Opzionale — se presente è una risposta a un commento esistente
+    private Long parentId;
 }
