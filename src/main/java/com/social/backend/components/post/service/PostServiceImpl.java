@@ -165,6 +165,10 @@ public class PostServiceImpl implements PostService {
             savedPost = postRepository.save(savedPost);
         }
 
+        // Processa mention @username nel post
+        mentionService.processMentions(request.getContent(), userId, savedPost.getId(), null,
+                author.getUsername());
+
         return mapToResponse(savedPost, userId);
     }
 
