@@ -77,7 +77,7 @@ public class AIController {
         String tone = (String) body.getOrDefault("tone", "friendly");
         String partialText = (String) body.getOrDefault("partialText", "");
         String caption = aiService.generateCaptionVision(base64Images, tone, partialText);
-        return ResponseEntity.ok(new AIResponse(caption, "llama-3.2-11b-vision-preview"));
+        return ResponseEntity.ok(new AIResponse(caption, "llama-4-scout-17b"));
     }
 
     @PostMapping("/generate")

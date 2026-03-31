@@ -112,7 +112,7 @@ public class GroqAIServiceImpl implements AIService {
 
             Map<String, Object> message = Map.of("role", "user", "content", contentParts);
             Map<String, Object> request = Map.of(
-                    "model", "llama-3.2-11b-vision-preview",
+                    "model", "meta-llama/llama-4-scout-17b-16e-instruct",
                     "messages", List.of(message),
                     "temperature", 0.7,
                     "max_tokens", 150
