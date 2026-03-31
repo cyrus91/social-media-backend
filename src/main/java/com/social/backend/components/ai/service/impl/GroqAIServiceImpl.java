@@ -87,10 +87,22 @@ public class GroqAIServiceImpl implements AIService {
         try {
             List<Map<String, Object>> contentParts = new java.util.ArrayList<>();
 
-            // Max 3 immagini per token limit
-            int limit = Math.min(base64Images.size(), 3);
-            for (int i = 0; i < limit; i++) {
-                String b64 = base64Images.get(i);
+            // Testo PRIMA delle immagini (Groq richiede questo ordine)
+            String toneLabel = switch (tone) {
+                case "professional" -> "professionale e formale";
+                case "funny" -> "divertente e ironica";
+                case "inspirational" -> "ispirazionale e motivante";
+                default -> "amichevole e coinvolgente";
+            };
+            String promptText = "Guarda questa immagine e genera una caption " + toneLabel +
+                    " per un post social media." +
+                    (partialText != null && !partialText.isBlank() ? " Ispirandoti a: " + partialText : "") +
+                    " Rispondi SOLO con la caption (massimo 120 caratteri), nessuna introduzione.";
+            contentParts.add(Map.of("type", "text", "text", promptText));
+
+            // Max 1 immagine per tenere la richiesta piccola
+            if (!base64Images.isEmpty()) {
+                String b64 = base64Images.get(0);
                 if (b64.contains(",")) b64 = b64.substring(b64.indexOf(",") + 1);
                 contentParts.add(Map.of(
                         "type", "image_url",
@@ -98,32 +110,26 @@ public class GroqAIServiceImpl implements AIService {
                 ));
             }
 
-            String toneLabel = switch (tone) {
-                case "professional" -> "professionale e formale";
-                case "funny" -> "divertente e ironica";
-                case "inspirational" -> "ispirazionale e motivante";
-                default -> "amichevole e coinvolgente";
-            };
-            String promptText = "Guarda queste immagini e genera una caption " + toneLabel +
-                    " per un post social media." +
-                    (partialText != null && !partialText.isBlank() ? " Ispirandoti a: " + partialText : "") +
-                    " Rispondi SOLO con la caption (50-120 caratteri), nessuna introduzione.";
-            contentParts.add(Map.of("type", "text", "text", promptText));
-
             Map<String, Object> message = Map.of("role", "user", "content", contentParts);
             Map<String, Object> request = Map.of(
                     "model", "llama-3.2-11b-vision-preview",
                     "messages", List.of(message),
                     "temperature", 0.7,
-                    "max_tokens", 200
+                    "max_tokens", 150
             );
 
+            // Usa onStatus per loggare il body dell'errore Groq
             String json = webClient.post()
                     .uri(groqUrl + "/chat/completions")
                     .header("Authorization", "Bearer " + apiKey)
                     .header("Content-Type", "application/json")
                     .bodyValue(request)
                     .retrieve()
+                    .onStatus(status -> status.is4xxClientError() || status.is5xxServerError(),
+                            resp -> resp.bodyToMono(String.class).map(body -> {
+                                System.out.println("❌ Groq Vision Error body: " + body);
+                                return new RuntimeException("Groq vision error: " + body);
+                            }))
                     .bodyToMono(String.class)
                     .block();
 
@@ -133,6 +139,7 @@ public class GroqAIServiceImpl implements AIService {
         } catch (Exception e) {
             System.out.println("⚠️ Vision fallito (" + e.getClass().getSimpleName() + "): " + e.getMessage());
             return generateCaption(partialText != null ? partialText : "", null, tone);
+
         }
     }
 
