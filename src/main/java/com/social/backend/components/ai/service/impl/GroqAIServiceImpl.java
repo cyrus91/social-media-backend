@@ -131,7 +131,7 @@ public class GroqAIServiceImpl implements AIService {
                     new com.fasterxml.jackson.databind.ObjectMapper().readTree(json);
             return root.path("choices").get(0).path("message").path("content").asText().trim();
         } catch (Exception e) {
-            System.out.println("⚠️ Vision fallito, fallback testuale: " + e.getMessage());
+            System.out.println("⚠️ Vision fallito (" + e.getClass().getSimpleName() + "): " + e.getMessage());
             return generateCaption(partialText != null ? partialText : "", null, tone);
         }
     }
