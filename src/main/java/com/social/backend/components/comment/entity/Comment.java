@@ -37,8 +37,11 @@ public class Comment {
     @JoinColumn(name = "author_id", nullable = false)
     private User author;
 
-    @Column(nullable = false, columnDefinition = "TEXT")
-    private String content;
+    @Column(columnDefinition = "TEXT")
+    private String content; // null se commento solo immagine
+
+    @Column(name = "image_url", length = 500)
+    private String imageUrl;
 
     // Risposta a un commento padre (null = commento principale)
     @ManyToOne(fetch = FetchType.LAZY)

@@ -19,6 +19,7 @@ public class CommentResponse {
     private String authorUsername;
     private String authorAvatarUrl;
     private String content;
+    private String imageUrl; // null se commento solo testo
     private Instant createdAt;
     private Instant updatedAt;
     private Map<String, Long> reactions;

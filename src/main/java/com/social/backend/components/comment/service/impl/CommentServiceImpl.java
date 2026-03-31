@@ -67,8 +67,15 @@ public class CommentServiceImpl implements CommentService {
         User author = userRepository.findById(authorId)
                 .orElseThrow(() -> new ResourceNotFoundException("Utente non trovato con ID: " + authorId));
 
+        // Valida: deve esserci almeno content o imageUrl
+        if ((request.getContent() == null || request.getContent().isBlank()) && request.getImageUrl() == null) {
+            throw new IllegalArgumentException("Il commento deve avere testo o immagine");
+        }
+
         Comment comment = new Comment();
-        comment.setContent(request.getContent());
+        comment.setContent(request.getContent() != null && !request.getContent().isBlank()
+                ? request.getContent() : null);
+        comment.setImageUrl(request.getImageUrl());
         comment.setPost(post);
         comment.setAuthor(author);
 
@@ -234,6 +241,7 @@ public class CommentServiceImpl implements CommentService {
                 .authorId(comment.getAuthor().getId())
                 .authorUsername(comment.getAuthor().getUsername())
                 .authorAvatarUrl(comment.getAuthor().getAvatarUrl())
+                .imageUrl(comment.getImageUrl())
                 .createdAt(comment.getCreatedAt().atZone(ZoneId.systemDefault()).toInstant())
                 .updatedAt(comment.getUpdatedAt() != null
                         ? comment.getUpdatedAt().atZone(ZoneId.systemDefault()).toInstant() : null)

@@ -4,6 +4,7 @@ import com.social.backend.components.comment.dto.CommentResponse;
 import com.social.backend.components.comment.dto.CreateCommentRequest;
 import com.social.backend.components.comment.dto.UpdateCommentRequest;
 import com.social.backend.components.comment.service.CommentService;
+import com.social.backend.components.storage.service.StorageService;
 import com.social.backend.security.UserDetailsImpl;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
@@ -15,15 +16,23 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
+import org.springframework.web.multipart.MultipartFile;
+
+import org.springframework.beans.factory.annotation.Value;
 
 @RestController
 @RequestMapping("/api/comments")
 public class CommentController {
 
     private final CommentService commentService;
+    private final StorageService storageService;
 
-    public CommentController(CommentService commentService) {
+    @Value("${storage.local.posts-dir:comments}")
+    private String commentsDir;
+
+    public CommentController(CommentService commentService, StorageService storageService) {
         this.commentService = commentService;
+        this.storageService = storageService;
     }
 
     @PostMapping
@@ -65,6 +74,27 @@ public class CommentController {
             @AuthenticationPrincipal UserDetailsImpl userDetails,
             @PathVariable Long id) {
         commentService.delete(userDetails.getUser().getId(), id);
+    }
+
+    @PostMapping(value = "/with-image", consumes = "multipart/form-data")
+    @ResponseStatus(HttpStatus.CREATED)
+    public CommentResponse createWithImage(
+            @AuthenticationPrincipal UserDetailsImpl userDetails,
+            @RequestParam("postId") Long postId,
+            @RequestParam(value = "content", required = false) String content,
+            @RequestParam(value = "parentId", required = false) Long parentId,
+            @RequestParam("image") MultipartFile image) throws java.io.IOException {
+
+        String fileName = storageService.store(image, commentsDir);
+        String imageUrl = storageService.getFileUrl(fileName, commentsDir);
+
+        CreateCommentRequest req = new CreateCommentRequest();
+        req.setPostId(postId);
+        req.setContent(content);
+        req.setParentId(parentId);
+        req.setImageUrl(imageUrl);
+
+        return commentService.create(userDetails.getUser().getId(), req);
     }
 
     @PostMapping("/{id}/reactions")
