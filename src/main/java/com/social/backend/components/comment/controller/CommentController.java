@@ -4,7 +4,6 @@ import com.social.backend.components.comment.dto.CommentResponse;
 import com.social.backend.components.comment.dto.CreateCommentRequest;
 import com.social.backend.components.comment.dto.UpdateCommentRequest;
 import com.social.backend.components.comment.service.CommentService;
-import com.social.backend.components.storage.service.StorageService;
 import com.social.backend.security.UserDetailsImpl;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
@@ -17,7 +16,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
 import org.springframework.web.multipart.MultipartFile;
-
+import com.social.backend.components.storage.service.StorageService;
 import org.springframework.beans.factory.annotation.Value;
 
 @RestController
@@ -95,6 +94,14 @@ public class CommentController {
         req.setImageUrl(imageUrl);
 
         return commentService.create(userDetails.getUser().getId(), req);
+    }
+
+    @DeleteMapping("/{id}/image")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void deleteImage(
+            @PathVariable Long id,
+            @AuthenticationPrincipal UserDetailsImpl userDetails) {
+        commentService.deleteImage(id, userDetails.getUser().getId());
     }
 
     @PostMapping("/{id}/reactions")

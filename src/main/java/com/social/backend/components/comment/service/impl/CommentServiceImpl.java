@@ -217,6 +217,17 @@ public class CommentServiceImpl implements CommentService {
         return mapToResponse(commentRepository.findById(commentId).get(), userId);
     }
 
+    @Override
+    @Transactional
+    public void deleteImage(Long commentId, Long userId) {
+        Comment comment = commentRepository.findById(commentId)
+                .orElseThrow(() -> new ResourceNotFoundException("Commento non trovato"));
+        if (!comment.getAuthor().getId().equals(userId))
+            throw new ForbiddenException("Non autorizzato");
+        comment.setImageUrl(null);
+        commentRepository.save(comment);
+    }
+
     private CommentResponse mapToResponse(Comment comment, Long currentUserId) {
         List<CommentReaction> reactions = reactionRepository.findByCommentId(comment.getId());
         Map<String, Long> reactionMap = reactions.stream()

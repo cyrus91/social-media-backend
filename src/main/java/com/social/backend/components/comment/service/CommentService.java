@@ -26,4 +26,6 @@ public interface CommentService {
     void delete(Long currentUserId, Long commentId);
 
     CommentResponse toggleReaction(Long commentId, Long userId, String emoji);
+
+    void deleteImage(Long commentId, Long userId);
 }
