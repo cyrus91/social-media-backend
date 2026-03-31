@@ -7,6 +7,8 @@ public interface AIService {
 
     String generateCaption(String partialText, List<String> imageUrls, String tone);
 
+    String generateCaptionVision(List<String> base64Images, String tone, String partialText);
+
     String improveText(String text, String context);
 
     String suggestReply(String originalComment, String postContext);

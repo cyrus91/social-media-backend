@@ -28,6 +28,12 @@ public class OllamaAIServiceImpl implements AIService {
     }
 
     @Override
+    public String generateCaptionVision(List<String> base64Images, String tone, String partialText) {
+        // Ollama non supporta vision — fallback al metodo testuale
+        return generateCaption(partialText != null ? partialText : "", null, tone);
+    }
+
+    @Override
     public String generate(String prompt) {
         return generateCaption(prompt, null, null);
     }

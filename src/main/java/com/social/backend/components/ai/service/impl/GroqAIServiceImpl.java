@@ -82,6 +82,60 @@ public class GroqAIServiceImpl implements AIService {
                 .toList();
     }
 
+    @Override
+    public String generateCaptionVision(List<String> base64Images, String tone, String partialText) {
+        try {
+            List<Map<String, Object>> contentParts = new java.util.ArrayList<>();
+
+            // Max 3 immagini per token limit
+            int limit = Math.min(base64Images.size(), 3);
+            for (int i = 0; i < limit; i++) {
+                String b64 = base64Images.get(i);
+                if (b64.contains(",")) b64 = b64.substring(b64.indexOf(",") + 1);
+                contentParts.add(Map.of(
+                        "type", "image_url",
+                        "image_url", Map.of("url", "data:image/jpeg;base64," + b64)
+                ));
+            }
+
+            String toneLabel = switch (tone) {
+                case "professional" -> "professionale e formale";
+                case "funny" -> "divertente e ironica";
+                case "inspirational" -> "ispirazionale e motivante";
+                default -> "amichevole e coinvolgente";
+            };
+            String promptText = "Guarda queste immagini e genera una caption " + toneLabel +
+                    " per un post social media." +
+                    (partialText != null && !partialText.isBlank() ? " Ispirandoti a: " + partialText : "") +
+                    " Rispondi SOLO con la caption (50-120 caratteri), nessuna introduzione.";
+            contentParts.add(Map.of("type", "text", "text", promptText));
+
+            Map<String, Object> message = Map.of("role", "user", "content", contentParts);
+            Map<String, Object> request = Map.of(
+                    "model", "llama-3.2-11b-vision-preview",
+                    "messages", List.of(message),
+                    "temperature", 0.7,
+                    "max_tokens", 200
+            );
+
+            String json = webClient.post()
+                    .uri(groqUrl + "/chat/completions")
+                    .header("Authorization", "Bearer " + apiKey)
+                    .header("Content-Type", "application/json")
+                    .bodyValue(request)
+                    .retrieve()
+                    .bodyToMono(String.class)
+                    .block();
+
+            com.fasterxml.jackson.databind.JsonNode root =
+                    new com.fasterxml.jackson.databind.ObjectMapper().readTree(json);
+            return root.path("choices").get(0).path("message").path("content").asText().trim();
+        } catch (Exception e) {
+            System.out.println("⚠️ Vision fallito, fallback testuale: " + e.getMessage());
+            return generateCaption(partialText != null ? partialText : "", null, tone);
+        }
+    }
+
     private String buildCaptionPrompt(String partialText, List<String> imageUrls, String tone) {
         StringBuilder prompt = new StringBuilder();
         prompt.append("Genera una caption coinvolgente per un post social media.\n\n");

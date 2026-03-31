@@ -69,6 +69,17 @@ public class AIController {
         return ResponseEntity.ok(new AIResponse(reply, "llama3.2"));
     }
 
+    @PostMapping("/generate-caption-vision")
+    @Operation(summary = "Genera caption AI analizzando le immagini (vision)")
+    public ResponseEntity<AIResponse> generateCaptionVision(@RequestBody Map<String, Object> body) {
+        @SuppressWarnings("unchecked")
+        List<String> base64Images = (List<String>) body.getOrDefault("images", List.of());
+        String tone = (String) body.getOrDefault("tone", "friendly");
+        String partialText = (String) body.getOrDefault("partialText", "");
+        String caption = aiService.generateCaptionVision(base64Images, tone, partialText);
+        return ResponseEntity.ok(new AIResponse(caption, "llama-3.2-11b-vision-preview"));
+    }
+
     @PostMapping("/generate")
     @Operation(summary = "Genera risposta AI generica")
     public ResponseEntity<Map<String, String>> generate(@RequestBody Map<String, String> body) {
