@@ -1,5 +1,6 @@
 package com.social.backend.config;
 
+import com.social.backend.components.auth.oauth2.OAuth2SuccessHandler;
 import com.social.backend.security.JwtAuthenticationFilter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
@@ -26,6 +27,7 @@ import java.util.List;
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
+    private final OAuth2SuccessHandler oAuth2SuccessHandler;
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -33,47 +35,29 @@ public class SecurityConfig {
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .csrf(csrf -> csrf.disable())
                 .sessionManagement(session ->
-                        session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+                        session.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED)
                 )
                 .authorizeHttpRequests(auth -> auth
-                        // Auth endpoints
                         .requestMatchers("/api/auth/**").permitAll()
-
-                        // AI endpoints -> protetti
+                        .requestMatchers("/oauth2/**", "/login/oauth2/**").permitAll()
                         .requestMatchers("/api/ai/**").authenticated()
-
-                        // Admin endpoints - solo ROLE_ADMIN
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
-
-                        // Messaggi - solo autenticati
                         .requestMatchers("/api/messages/**").authenticated()
-
-                        // Public GET endpoints
                         .requestMatchers(HttpMethod.GET, "/api/users/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/posts/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/comments/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/follows/**").permitAll()
-
-                        // Swagger/OpenAPI
                         .requestMatchers(
-                                "/v3/api-docs/**",
-                                "/swagger-ui/**",
-                                "/swagger-ui.html",
-                                "/swagger-resources/**",
-                                "/webjars/**"
+                                "/v3/api-docs/**", "/swagger-ui/**",
+                                "/swagger-ui.html", "/swagger-resources/**", "/webjars/**"
                         ).permitAll()
-
-                        // Actuator
                         .requestMatchers("/actuator/**").permitAll()
-
-                        // WebSocket handshake
                         .requestMatchers("/ws/**").permitAll()
-
-                        // Static resources
                         .requestMatchers("/uploads/**").permitAll()
-
-                        // Tutto il resto autenticato
                         .anyRequest().authenticated()
+                )
+                .oauth2Login(oauth2 -> oauth2
+                        .successHandler(oAuth2SuccessHandler)
                 )
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
@@ -83,35 +67,21 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-
         configuration.setAllowedOrigins(List.of(
                 "http://localhost:5173",
                 "http://localhost:3000",
                 "https://social-media-frontend-mu-neon.vercel.app"
         ));
-
-        configuration.setAllowedMethods(List.of(
-                "GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"
-        ));
-
+        configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
         configuration.setAllowedHeaders(List.of(
-                "Authorization",
-                "Content-Type",
-                "Accept",
-                "Origin",
-                "X-Requested-With"
+                "Authorization", "Content-Type", "Accept", "Origin", "X-Requested-With"
         ));
-
-        configuration.setExposedHeaders(List.of(
-                "Authorization"
-        ));
-
+        configuration.setExposedHeaders(List.of("Authorization"));
         configuration.setAllowCredentials(true);
         configuration.setMaxAge(3600L);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);
-
         return source;
     }
 

@@ -61,6 +61,18 @@ public class User {
     @Column(name = "banned", nullable = false, columnDefinition = "boolean default false")
     private boolean banned = false;
 
+    @Setter
+    @Column(name = "google_id", length = 255, unique = true)
+    private String googleId;
+
+    @Setter
+    @Column(name = "password_reset_token", length = 255)
+    private String passwordResetToken;
+
+    @Setter
+    @Column(name = "password_reset_token_expiry")
+    private LocalDateTime passwordResetTokenExpiry;
+
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 

@@ -207,4 +207,57 @@ public class AuthServiceImpl implements AuthService {
         userResponse.setBanned(user.isBanned());
         return userResponse;
     }
+
+    @Override
+    @Transactional
+    public void requestPasswordReset(String email) {
+        User user = userRepository.findByEmail(email.trim().toLowerCase())
+                .orElseThrow(() -> new RuntimeException("EMAIL_NOT_FOUND"));
+
+        // Blocca il reset per account Google-only (nessuna password)
+        if (user.getPasswordHash() != null && user.getPasswordHash().startsWith("OAUTH2_NO_PASSWORD_")) {
+            throw new RuntimeException("OAUTH2_ACCOUNT");
+        }
+
+        String token = UUID.randomUUID().toString();
+        user.setPasswordResetToken(token);
+        user.setPasswordResetTokenExpiry(LocalDateTime.now().plusHours(1));
+        userRepository.save(user);
+
+        emailService.sendPasswordResetEmail(user.getEmail(), user.getUsername(), token);
+    }
+
+    @Override
+    @Transactional
+    public void resetPassword(String token, String newPassword) {
+        User user = userRepository.findByPasswordResetToken(token)
+                .orElseThrow(() -> new RuntimeException("INVALID_TOKEN"));
+
+        if (user.getPasswordResetTokenExpiry().isBefore(LocalDateTime.now())) {
+            throw new RuntimeException("TOKEN_EXPIRED");
+        }
+
+        user.setPasswordHash(passwordEncoder.encode(newPassword));
+        user.setPasswordResetToken(null);
+        user.setPasswordResetTokenExpiry(null);
+        userRepository.save(user);
+    }
+
+    @Override
+    @Transactional
+    public void changePassword(Long userId, String currentPassword, String newPassword) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("USER_NOT_FOUND"));
+
+        if (user.getPasswordHash() != null && user.getPasswordHash().startsWith("OAUTH2_NO_PASSWORD_")) {
+            throw new RuntimeException("OAUTH2_ACCOUNT");
+        }
+
+        if (!passwordEncoder.matches(currentPassword, user.getPasswordHash())) {
+            throw new RuntimeException("WRONG_PASSWORD");
+        }
+
+        user.setPasswordHash(passwordEncoder.encode(newPassword));
+        userRepository.save(user);
+    }
 }

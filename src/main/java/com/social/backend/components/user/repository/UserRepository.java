@@ -16,6 +16,10 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     Optional<User> findByVerificationToken(String verificationToken);
 
+    Optional<User> findByGoogleId(String googleId);
+
+    Optional<User> findByPasswordResetToken(String passwordResetToken);
+
     // Case-insensitive login
     @Query("SELECT u FROM User u WHERE LOWER(u.username) = LOWER(:username)")
     Optional<User> findByUsernameIgnoreCase(@Param("username") String username);
@@ -33,5 +37,6 @@ public interface UserRepository extends JpaRepository<User, Long> {
     List<User> searchByUsernameOrEmail(@Param("query") String query);
 
     long countByBanned(boolean banned);
+
     long countByRole(String role);
 }

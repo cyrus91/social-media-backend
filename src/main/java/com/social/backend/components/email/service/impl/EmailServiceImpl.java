@@ -83,4 +83,61 @@ public class EmailServiceImpl implements EmailService {
             throw new RuntimeException("Errore nell'invio dell'email di verifica");
         }
     }
+
+    @Override
+    public void sendPasswordResetEmail(String toEmail, String username, String resetToken) {
+        String resetLink = frontendUrl + "/reset-password?token=" + resetToken;
+
+        String htmlContent = """
+                <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background: #09090f; border-radius: 12px;">
+                    <div style="text-align: center; margin-bottom: 24px;">
+                        <h1 style="font-size: 32px; font-weight: 800; background: linear-gradient(135deg, #7C3AED, #06B6D4); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; margin: 0;">Nexus</h1>
+                    </div>
+                    <h2 style="color: #e8e6ff; font-size: 20px;">Reset della password, %s</h2>
+                    <p style="color: #8b82b0; font-size: 15px; line-height: 1.6;">
+                        Hai richiesto il reset della tua password. Clicca il bottone qui sotto per sceglierne una nuova.
+                    </p>
+                    <div style="text-align: center; margin: 32px 0;">
+                        <a href="%s"
+                           style="background: linear-gradient(135deg, #5B21B6, #7C3AED);
+                                  color: white;
+                                  padding: 14px 32px;
+                                  text-decoration: none;
+                                  border-radius: 999px;
+                                  font-size: 15px;
+                                  font-weight: 700;">
+                            🔑 Reimposta Password
+                        </a>
+                    </div>
+                    <p style="color: #5a5278; font-size: 13px;">
+                        Il link scade tra <strong style="color: #8b82b0;">1 ora</strong>.<br>
+                        Se non hai richiesto il reset, ignora questa email.
+                    </p>
+                    <hr style="border: none; border-top: 1px solid rgba(124,58,237,0.15); margin: 24px 0;">
+                    <p style="color: #4a4768; font-size: 12px; text-align: center;">Nexus — Where connections come alive</p>
+                </div>
+                """.formatted(username, resetLink);
+
+        Map<String, Object> emailRequest = Map.of(
+                "from", fromEmail,
+                "to", List.of(toEmail),
+                "subject", "Reset password Nexus",
+                "html", htmlContent
+        );
+
+        try {
+            webClient.post()
+                    .uri("/emails")
+                    .header("Authorization", "Bearer " + apiKey)
+                    .header("Content-Type", "application/json")
+                    .bodyValue(emailRequest)
+                    .retrieve()
+                    .bodyToMono(Map.class)
+                    .block();
+            System.out.println("✅ Email reset password inviata a: " + toEmail);
+        } catch (Exception e) {
+            System.err.println("❌ Errore invio email reset a " + toEmail + ": " + e.getMessage());
+            throw new RuntimeException("Errore nell'invio dell'email di reset");
+        }
+    }
 }

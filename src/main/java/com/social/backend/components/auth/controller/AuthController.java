@@ -96,4 +96,69 @@ public class AuthController {
         User currentUser = userDetails.getUser();
         authService.logout(currentUser.getId());
     }
+
+    // ==================== PASSWORD RESET ====================
+
+    @PostMapping("/forgot-password")
+    @Operation(summary = "Richiedi reset password", description = "Invia email con link di reset")
+    public ResponseEntity<?> forgotPassword(@RequestBody Map<String, String> body) {
+        try {
+            authService.requestPasswordReset(body.get("email"));
+            return ResponseEntity.ok(Map.of("message", "Email di reset inviata. Controlla la tua casella."));
+        } catch (RuntimeException e) {
+            if ("OAUTH2_ACCOUNT".equals(e.getMessage())) {
+                return ResponseEntity.badRequest().body(Map.of(
+                        "error", "OAUTH2_ACCOUNT",
+                        "message", "Questo account usa il login con Google. Non puoi resettare la password."
+                ));
+            }
+            // Risposta generica per sicurezza (non rivela se l'email esiste)
+            return ResponseEntity.ok(Map.of("message", "Se l'email esiste, riceverai un link di reset."));
+        }
+    }
+
+    @PostMapping("/reset-password")
+    @Operation(summary = "Reimposta password", description = "Imposta nuova password tramite token")
+    public ResponseEntity<?> resetPassword(@RequestBody Map<String, String> body) {
+        try {
+            String token = body.get("token");
+            String newPassword = body.get("newPassword");
+            if (newPassword == null || newPassword.length() < 6) {
+                return ResponseEntity.badRequest().body(Map.of("error", "La password deve essere di almeno 6 caratteri"));
+            }
+            authService.resetPassword(token, newPassword);
+            return ResponseEntity.ok(Map.of("message", "Password reimpostata con successo!"));
+        } catch (RuntimeException e) {
+            if ("TOKEN_EXPIRED".equals(e.getMessage())) {
+                return ResponseEntity.status(HttpStatus.GONE).body(Map.of(
+                        "error", "TOKEN_EXPIRED", "message", "Il link è scaduto. Richiedi un nuovo reset."
+                ));
+            }
+            return ResponseEntity.badRequest().body(Map.of("error", "Token non valido o già usato."));
+        }
+    }
+
+    @PostMapping("/change-password")
+    @Operation(summary = "Cambia password", description = "Cambia password quando autenticato")
+    public ResponseEntity<?> changePassword(
+            @AuthenticationPrincipal UserDetailsImpl userDetails,
+            @RequestBody Map<String, String> body) {
+        try {
+            authService.changePassword(
+                    userDetails.getUser().getId(),
+                    body.get("currentPassword"),
+                    body.get("newPassword")
+            );
+            return ResponseEntity.ok(Map.of("message", "Password aggiornata con successo!"));
+        } catch (RuntimeException e) {
+            return switch (e.getMessage()) {
+                case "WRONG_PASSWORD" ->
+                        ResponseEntity.badRequest().body(Map.of("error", "Password attuale non corretta."));
+                case "OAUTH2_ACCOUNT" -> ResponseEntity.badRequest().body(Map.of(
+                        "error", "OAUTH2_ACCOUNT", "message", "Questo account usa il login con Google."
+                ));
+                default -> ResponseEntity.badRequest().body(Map.of("error", "Errore nel cambio password."));
+            };
+        }
+    }
 }
