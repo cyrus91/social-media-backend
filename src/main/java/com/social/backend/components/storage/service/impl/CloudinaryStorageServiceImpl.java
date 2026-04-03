@@ -74,7 +74,7 @@ public class CloudinaryStorageServiceImpl implements StorageService {
             System.out.println("📋 Public ID: " + resultPublicId);
             System.out.println("🔗 URL: " + secureUrl);
 
-            return resultPublicId;
+            return secureUrl;
 
         } catch (IOException e) {
             System.err.println("❌ ERRORE UPLOAD CLOUDINARY!");
