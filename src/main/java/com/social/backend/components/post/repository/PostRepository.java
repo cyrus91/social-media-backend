@@ -84,6 +84,11 @@ public interface PostRepository extends JpaRepository<Post, Long> {
     @Query("DELETE FROM Post p WHERE p.author.id = :authorId")
     void deleteByAuthorId(@Param("authorId") Long authorId);
 
+    @Modifying
+    @Transactional
+    @Query("UPDATE Post p SET p.viewCount = p.viewCount + 1 WHERE p.id = :postId")
+    void incrementViewCount(@Param("postId") Long postId);
+
     /**
      * Ricerca post per hashtag nel contenuto (case-insensitive)
      */

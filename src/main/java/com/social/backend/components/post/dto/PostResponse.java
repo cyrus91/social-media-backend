@@ -33,5 +33,6 @@ public class PostResponse {
     private Instant updatedAt;
     private Integer likeCount;
     private Integer commentCount;
+    private Long viewCount;
     private Boolean liked;
 }

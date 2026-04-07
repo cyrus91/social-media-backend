@@ -108,7 +108,18 @@ public class PostController {
         return postService.getById(id, currentUserId);
     }
 
-    @GetMapping("/author/{authorId}")
+    @PostMapping("/{id}/view")
+    @Operation(summary = "Incrementa view count")
+    public ResponseEntity<Void> incrementView(
+            @AuthenticationPrincipal UserDetailsImpl userDetails,
+            @PathVariable Long id) {
+        if (userDetails != null) {
+            postService.incrementViewCount(id, userDetails.getUser().getId());
+        }
+        return ResponseEntity.ok().build();
+    }
+
+
     @Operation(summary = "Ottieni post di un utente")
     public Page<PostResponse> getByAuthor(
             @AuthenticationPrincipal UserDetailsImpl userDetails,

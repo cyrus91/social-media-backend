@@ -487,9 +487,15 @@ public class PostServiceImpl implements PostService {
         return postRepository.countByAuthorId(authorId);
     }
 
-    // ============================================
-    // MAPPER (SINGLE SOURCE OF TRUTH!)
-    // ============================================
+    @Override
+    @Transactional
+    public void incrementViewCount(Long postId, Long currentUserId) {
+        Post post = postRepository.findById(postId)
+                .orElseThrow(() -> new ResourceNotFoundException("Post non trovato"));
+        // Non contare le view dell'autore sul proprio post
+        if (post.getAuthor().getId().equals(currentUserId)) return;
+        postRepository.incrementViewCount(postId);
+    }
 
     private PostResponse mapToResponse(Post post, Long currentUserId) {
         // Conteggi
@@ -535,6 +541,7 @@ public class PostServiceImpl implements PostService {
                         post.getUpdatedAt().atZone(ZoneId.systemDefault()).toInstant() : null)
                 .likeCount(likeCount)
                 .commentCount(commentCount)
+                .viewCount(post.getViewCount())
                 .liked(liked)
                 .build();
     }

@@ -35,6 +35,7 @@ public interface PostService {
 
     // COUNT
     int countByAuthor(Long authorId);
+    void incrementViewCount(Long postId, Long currentUserId);
 
     PostResponse createWithImages(Long userId, CreatePostRequest request, List<MultipartFile> images);
 
