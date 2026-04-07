@@ -13,11 +13,11 @@ import java.util.List;
 public interface StoryRepository extends JpaRepository<Story, Long> {
 
     // Storie attive di un utente (non scadute)
-    @Query("SELECT s FROM Story s WHERE s.author.id = :authorId AND s.expiresAt > :now ORDER BY s.createdAt DESC")
+    @Query("SELECT s FROM Story s WHERE s.author.id = :authorId AND s.expiresAt > :now ORDER BY s.createdAt ASC")
     List<Story> findActiveByAuthorId(@Param("authorId") Long authorId, @Param("now") LocalDateTime now);
 
     // Storie feed: utenti seguiti + proprie storie, non scadute
-    @Query("SELECT s FROM Story s WHERE s.author.id IN :authorIds AND s.expiresAt > :now ORDER BY s.createdAt DESC")
+    @Query("SELECT s FROM Story s WHERE s.author.id IN :authorIds AND s.expiresAt > :now ORDER BY s.createdAt ASC")
     List<Story> findActiveFeedStories(@Param("authorIds") List<Long> authorIds, @Param("now") LocalDateTime now);
 
     // Conta storie attive per utente
