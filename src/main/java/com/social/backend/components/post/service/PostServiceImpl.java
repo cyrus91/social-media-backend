@@ -3,6 +3,7 @@ package com.social.backend.components.post.service;
 import com.social.backend.common.exception.ForbiddenException;
 import com.social.backend.common.exception.ResourceNotFoundException;
 import com.social.backend.components.comment.repository.CommentRepository;
+import com.social.backend.components.bookmark.repository.BookmarkRepository;
 import com.social.backend.components.follow.repository.FollowRepository;
 import com.social.backend.components.like.repository.LikeRepository;
 import com.social.backend.components.notification.repository.NotificationRepository;
@@ -38,6 +39,7 @@ public class PostServiceImpl implements PostService {
     private final UserRepository userRepository;
     private final LikeRepository likeRepository;
     private final CommentRepository commentRepository;
+    private final BookmarkRepository bookmarkRepository;
     private final FollowRepository followRepository;
     private final StorageService storageService;
     private final NotificationRepository notificationRepository;
@@ -49,7 +51,7 @@ public class PostServiceImpl implements PostService {
     public PostServiceImpl(PostRepository postRepository,
                            UserRepository userRepository,
                            LikeRepository likeRepository,
-                           CommentRepository commentRepository,
+                           CommentRepository commentRepository, BookmarkRepository bookmarkRepository,
                            FollowRepository followRepository,
                            StorageService storageService, NotificationRepository notificationRepository,
                            MentionService mentionService) {
@@ -57,6 +59,7 @@ public class PostServiceImpl implements PostService {
         this.userRepository = userRepository;
         this.likeRepository = likeRepository;
         this.commentRepository = commentRepository;
+        this.bookmarkRepository = bookmarkRepository;
         this.followRepository = followRepository;
         this.storageService = storageService;
         this.notificationRepository = notificationRepository;
@@ -503,6 +506,8 @@ public class PostServiceImpl implements PostService {
         int commentCount = commentRepository.countByPostId(post.getId());
         boolean liked = currentUserId != null &&
                 likeRepository.existsByUserIdAndPostId(currentUserId, post.getId());
+        boolean bookmarked = currentUserId != null &&
+                bookmarkRepository.existsByUserIdAndPostId(currentUserId, post.getId());
 
         //  Estrai PostImageDto da PostImage entities (con ID stabile per il frontend)
         List<com.social.backend.components.post.dto.PostImageDto> imageDtos = post.getImages().stream()
@@ -543,6 +548,7 @@ public class PostServiceImpl implements PostService {
                 .commentCount(commentCount)
                 .viewCount(post.getViewCount())
                 .liked(liked)
+                .bookmarked(bookmarked)
                 .build();
     }
 }

@@ -35,4 +35,5 @@ public class PostResponse {
     private Integer commentCount;
     private Long viewCount;
     private Boolean liked;
+    private Boolean bookmarked;
 }
