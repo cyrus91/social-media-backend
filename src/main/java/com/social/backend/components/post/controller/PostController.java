@@ -120,6 +120,7 @@ public class PostController {
     }
 
 
+    @GetMapping("/author/{authorId}")
     @Operation(summary = "Ottieni post di un utente")
     public Page<PostResponse> getByAuthor(
             @AuthenticationPrincipal UserDetailsImpl userDetails,
