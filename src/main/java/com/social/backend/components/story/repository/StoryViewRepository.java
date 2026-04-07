@@ -29,6 +29,10 @@ public interface StoryViewRepository extends JpaRepository<StoryView, Long> {
 
     @Modifying
     @Transactional
+    void deleteByStoryId(Long storyId);
+
+    @Modifying
+    @Transactional
     @Query("DELETE FROM StoryView sv WHERE sv.story.id IN (SELECT s.id FROM Story s WHERE s.expiresAt <= :now)")
     int deleteByExpiredStories(@Param("now") java.time.LocalDateTime now);
 }

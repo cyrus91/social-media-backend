@@ -204,6 +204,7 @@ public class StoryServiceImpl implements StoryService {
         }
 
         try { storageService.delete(story.getMediaUrl()); } catch (Exception ignored) {}
+        storyViewRepository.deleteByStoryId(storyId);
         storyRepository.delete(story);
     }
 
