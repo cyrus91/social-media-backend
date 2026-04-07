@@ -211,7 +211,10 @@ public class StoryServiceImpl implements StoryService {
     @Scheduled(fixedRate = 3600000) // ogni ora
     @Transactional
     public void deleteExpiredStories() {
-        int deleted = storyRepository.deleteExpiredStories(LocalDateTime.now());
+        LocalDateTime now = LocalDateTime.now();
+        // Prima elimina le view (FK constraint), poi le storie
+        storyViewRepository.deleteByExpiredStories(now);
+        int deleted = storyRepository.deleteExpiredStories(now);
         if (deleted > 0) System.out.println("🧹 Storie scadute eliminate: " + deleted);
     }
 }
