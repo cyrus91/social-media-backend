@@ -21,63 +21,43 @@ public interface PostRepository extends JpaRepository<Post, Long> {
     /**
      * Ottieni tutti i post con JOIN FETCH su author (evita N+1 queries)
      */
-    @Query("SELECT p FROM Post p JOIN FETCH p.author ORDER BY p.createdAt DESC")
+    @Query("SELECT p FROM Post p JOIN FETCH p.author WHERE p.hidden = false ORDER BY p.createdAt DESC")
     Page<Post> findAllWithAuthor(Pageable pageable);
 
-    /**
-     * Ottieni post di un singolo utente con JOIN FETCH
-     */
-    @Query("SELECT p FROM Post p JOIN FETCH p.author WHERE p.author.id = :authorId ORDER BY p.createdAt DESC")
+    @Query("SELECT p FROM Post p JOIN FETCH p.author WHERE p.author.id = :authorId AND p.hidden = false ORDER BY p.createdAt DESC")
     Page<Post> findByAuthorIdWithAuthor(@Param("authorId") Long authorId, Pageable pageable);
 
-    /**
-     * Feed personalizzato - post degli utenti seguiti con JOIN FETCH
-     */
-    @Query("SELECT p FROM Post p JOIN FETCH p.author WHERE p.author.id IN :followedUserIds ORDER BY p.createdAt DESC")
+    @Query("SELECT p FROM Post p JOIN FETCH p.author WHERE p.author.id IN :followedUserIds AND p.hidden = false ORDER BY p.createdAt DESC")
     Page<Post> findByAuthorIdInWithAuthor(@Param("followedUserIds") List<Long> followedUserIds, Pageable pageable);
 
-    /**
-     * Feed Esplora - post di utenti NON seguiti con JOIN FETCH
-     */
-    @Query("SELECT p FROM Post p JOIN FETCH p.author WHERE p.author.id NOT IN :excludedAuthorIds ORDER BY p.createdAt DESC")
+    @Query("SELECT p FROM Post p JOIN FETCH p.author WHERE p.author.id NOT IN :excludedAuthorIds AND p.hidden = false ORDER BY p.createdAt DESC")
     Page<Post> findByAuthorIdNotInWithAuthor(@Param("excludedAuthorIds") Set<Long> excludedAuthorIds, Pageable pageable);
-
-    // ============================================
-    // QUERY LEGACY (mantieni per compatibilità)
-    // ============================================
 
     List<Post> findByAuthorId(Long authorId);
 
     Page<Post> findByAuthorId(Long authorId, Pageable pageable);
 
-    @Query("SELECT p FROM Post p WHERE p.author.id IN :authorIds ORDER BY p.createdAt DESC")
+    @Query("SELECT p FROM Post p WHERE p.author.id IN :authorIds AND p.hidden = false ORDER BY p.createdAt DESC")
     Page<Post> findByAuthorIdIn(@Param("authorIds") List<Long> authorIds, Pageable pageable);
 
-    @Query("SELECT p FROM Post p WHERE p.author.id NOT IN :excludedAuthorIds ORDER BY p.createdAt DESC")
+    @Query("SELECT p FROM Post p WHERE p.author.id NOT IN :excludedAuthorIds AND p.hidden = false ORDER BY p.createdAt DESC")
     Page<Post> findByAuthorIdNotIn(@Param("excludedAuthorIds") Set<Long> excludedAuthorIds, Pageable pageable);
 
-    /**
-     * Feed personalizzato (per singolo utente - senza paginazione)
-     */
     @Query("SELECT p FROM Post p WHERE p.author.id IN " +
             "(SELECT f.followed.id FROM Follow f WHERE f.follower.id = :userId) " +
-            "ORDER BY p.createdAt DESC")
+            "AND p.hidden = false ORDER BY p.createdAt DESC")
     List<Post> findFeedByUserId(@Param("userId") Long userId);
 
-    /**
-     * Feed personalizzato (paginato)
-     */
     @Query("SELECT p FROM Post p WHERE p.author.id IN " +
             "(SELECT f.followed.id FROM Follow f WHERE f.follower.id = :userId) " +
-            "ORDER BY p.createdAt DESC")
+            "AND p.hidden = false ORDER BY p.createdAt DESC")
     Page<Post> findFeedByUserId(@Param("userId") Long userId, Pageable pageable);
 
-    // ============================================
-    // COUNT QUERY
-    // ============================================
-
-    @Query("SELECT COUNT(p) FROM Post p WHERE p.author.id = :authorId")
+    @Query("SELECT COUNT(p) FROM Post p WHERE p.author.id = :authorId AND p.hidden = false")
     Integer countByAuthorId(@Param("authorId") Long authorId);
+
+    @Query("SELECT p FROM Post p JOIN FETCH p.author WHERE LOWER(p.content) LIKE LOWER(CONCAT('%#', :tag, '%')) AND p.hidden = false ORDER BY p.createdAt DESC")
+    Page<Post> findByHashtag(@Param("tag") String tag, Pageable pageable);
 
     @Modifying
     @Transactional
@@ -89,9 +69,8 @@ public interface PostRepository extends JpaRepository<Post, Long> {
     @Query("UPDATE Post p SET p.viewCount = p.viewCount + 1 WHERE p.id = :postId")
     void incrementViewCount(@Param("postId") Long postId);
 
-    /**
-     * Ricerca post per hashtag nel contenuto (case-insensitive)
-     */
-    @Query("SELECT p FROM Post p JOIN FETCH p.author WHERE LOWER(p.content) LIKE LOWER(CONCAT('%#', :tag, '%')) ORDER BY p.createdAt DESC")
-    Page<Post> findByHashtag(@Param("tag") String tag, Pageable pageable);
+    @Modifying
+    @Transactional
+    @Query("UPDATE Post p SET p.hidden = true WHERE p.id = :postId")
+    void hidePost(@Param("postId") Long postId);
 }

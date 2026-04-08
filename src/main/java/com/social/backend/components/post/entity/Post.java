@@ -53,6 +53,10 @@ public class Post {
     @Builder.Default
     private Long viewCount = 0L;
 
+    @Column(name = "hidden", nullable = false)
+    @Builder.Default
+    private Boolean hidden = false;
+
     @UpdateTimestamp
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;

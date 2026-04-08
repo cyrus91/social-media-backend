@@ -39,4 +39,6 @@ public interface UserRepository extends JpaRepository<User, Long> {
     long countByBanned(boolean banned);
 
     long countByRole(String role);
+
+    List<com.social.backend.components.user.entity.User> findByRole(String role);
 }

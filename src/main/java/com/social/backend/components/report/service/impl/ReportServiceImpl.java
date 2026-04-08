@@ -1,6 +1,8 @@
 package com.social.backend.components.report.service.impl;
 
 import com.social.backend.common.exception.ResourceNotFoundException;
+import com.social.backend.components.notification.enums.NotificationType;
+import com.social.backend.components.notification.service.NotificationService;
 import com.social.backend.components.post.repository.PostRepository;
 import com.social.backend.components.report.dto.CreateReportRequest;
 import com.social.backend.components.report.dto.ReportResponse;
@@ -23,11 +25,11 @@ public class ReportServiceImpl implements ReportService {
     private final ReportRepository reportRepository;
     private final PostRepository postRepository;
     private final UserRepository userRepository;
+    private final NotificationService notificationService;
 
     @Override
     @Transactional
     public ReportResponse create(Long reporterId, CreateReportRequest request) {
-        // Un utente può segnalare un post una sola volta
         if (reportRepository.existsByReporterIdAndPostId(reporterId, request.getPostId())) {
             throw new IllegalStateException("Hai già segnalato questo post");
         }
@@ -43,7 +45,23 @@ public class ReportServiceImpl implements ReportService {
                 .notes(request.getNotes())
                 .build();
 
-        return mapToResponse(reportRepository.save(report));
+        ReportResponse response = mapToResponse(reportRepository.save(report));
+
+        // Notifica tutti gli admin
+        userRepository.findByRole("ADMIN").forEach(admin -> {
+            try {
+                notificationService.createNotification(
+                        admin.getId(),
+                        reporterId,
+                        NotificationType.REPORT,
+                        post.getId(),
+                        null,
+                        "@" + reporter.getUsername() + " ha segnalato un post per: " + request.getReason().name().replace("_", " ").toLowerCase()
+                );
+            } catch (Exception ignored) {}
+        });
+
+        return response;
     }
 
     @Override
@@ -62,6 +80,12 @@ public class ReportServiceImpl implements ReportService {
         var report = reportRepository.findById(reportId)
                 .orElseThrow(() -> new ResourceNotFoundException("Segnalazione non trovata"));
         report.setStatus(status);
+
+        // Se accettata → nascondi il post dal feed
+        if (status == Report.ReportStatus.REVIEWED) {
+            postRepository.hidePost(report.getPost().getId());
+        }
+
         return mapToResponse(reportRepository.save(report));
     }
 
