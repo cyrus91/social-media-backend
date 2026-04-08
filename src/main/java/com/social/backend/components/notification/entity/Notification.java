@@ -32,7 +32,7 @@ public class Notification {
     private User actor;  // Chi ha fatto l'azione
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column(nullable = false, columnDefinition = "varchar(50)")
     private NotificationType type;
 
     private Long postId;      // Post relativo (opzionale)
