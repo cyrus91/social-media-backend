@@ -1,5 +1,7 @@
 package com.social.backend.components.user.repository;
 
+import com.social.backend.components.user.enums.Role;
+
 import com.social.backend.components.user.entity.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -38,7 +40,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     long countByBanned(boolean banned);
 
-    long countByRole(String role);
+    long countByRole(Role role);
 
-    List<com.social.backend.components.user.entity.User> findByRole(String role);
+    List<User> findByRole(Role role);
 }

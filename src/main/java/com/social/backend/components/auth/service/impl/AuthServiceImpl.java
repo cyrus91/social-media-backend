@@ -1,5 +1,7 @@
 package com.social.backend.components.auth.service.impl;
 
+import com.social.backend.components.user.enums.Role;
+
 import com.social.backend.common.exception.DuplicateResourceException;
 import com.social.backend.components.auth.dto.LoginRequest;
 import com.social.backend.components.auth.dto.LoginResponse;
@@ -205,7 +207,7 @@ public class AuthServiceImpl implements AuthService {
                 .website(user.getWebsite())
                 .avatarUrl(user.getAvatarUrl())
                 .createdAt(user.getCreatedAt())
-                .role(user.getRole() != null ? user.getRole() : "USER")
+                .role(user.getRole() != null ? user.getRole() : Role.USER)
                 .banned(user.isBanned())
                 .emailVerified(user.isEmailVerified())
                 .build();

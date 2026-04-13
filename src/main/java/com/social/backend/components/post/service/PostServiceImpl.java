@@ -1,5 +1,7 @@
 package com.social.backend.components.post.service;
 
+import lombok.extern.slf4j.Slf4j;
+
 import com.social.backend.common.exception.ForbiddenException;
 import com.social.backend.common.exception.ResourceNotFoundException;
 import com.social.backend.components.comment.repository.CommentRepository;
@@ -37,6 +39,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
+@Slf4j
 public class PostServiceImpl implements PostService {
 
     private final PostRepository postRepository;
@@ -93,7 +96,7 @@ public class PostServiceImpl implements PostService {
         mentionService.processMentions(request.getContent(), userId, savedPost.getId(), null,
                 userRepository.findById(userId).map(u -> u.getUsername()).orElse(""));
 
-        System.out.println(" Post creato - ID: " + savedPost.getId());
+        log.info("{}", " Post creato - ID: " + savedPost.getId());
 
         return mapToResponse(savedPost, userId);
     }
@@ -127,7 +130,7 @@ public class PostServiceImpl implements PostService {
         mentionService.processMentions(request.getContent(), userId, savedPost.getId(), null,
                 userRepository.findById(userId).map(u -> u.getUsername()).orElse(""));
 
-        System.out.println(" Post con immagine creato - ID: " + savedPost.getId());
+        log.info("{}", " Post con immagine creato - ID: " + savedPost.getId());
 
         return mapToResponse(savedPost, userId);
     }
@@ -231,20 +234,20 @@ public class PostServiceImpl implements PostService {
         // Ottieni lista utenti seguiti
         List<Long> followedUserIds = followRepository.findFollowingIdsByUserId(userId);
 
-        System.out.println("📋 Feed per user " + userId + " - Segue " + followedUserIds.size() + " utenti");
+        log.info("{}", "📋 Feed per user " + userId + " - Segue " + followedUserIds.size() + " utenti");
 
         //  SE NON SEGUE NESSUNO, RITORNA PAGINA VUOTA!
         Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
 
         if (followedUserIds == null || followedUserIds.isEmpty()) {
-            System.out.println("⚠️ Utente non segue nessuno - ritorno feed vuoto");
+            log.info("⚠️ Utente non segue nessuno - ritorno feed vuoto");
             return Page.empty(pageable);
         }
 
         //  USA FETCH JOIN!
         Page<Post> posts = postRepository.findByAuthorIdInWithAuthor(followedUserIds, pageable);
 
-        System.out.println(" Feed caricato - " + posts.getNumberOfElements() + " post");
+        log.info("{}", " Feed caricato - " + posts.getNumberOfElements() + " post");
 
         return posts.map(post -> mapToResponse(post, userId));
     }
@@ -260,13 +263,13 @@ public class PostServiceImpl implements PostService {
 
         excludedAuthorIds.add(currentUserId);
 
-        System.out.println("🌍 Explore per user " + currentUserId + " - Esclusi " + excludedAuthorIds.size() + " utenti");
+        log.info("{}", "🌍 Explore per user " + currentUserId + " - Esclusi " + excludedAuthorIds.size() + " utenti");
 
         Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
 
         //  SE TUTTI ESCLUSI, USA findAllWithAuthor
         if (excludedAuthorIds.isEmpty()) {
-            System.out.println("⚠️ Nessun utente escluso - mostro tutti i post");
+            log.info("⚠️ Nessun utente escluso - mostro tutti i post");
             Page<Post> posts = postRepository.findAllWithAuthor(pageable);
             return posts.map(post -> mapToResponse(post, currentUserId));
         }
@@ -274,7 +277,7 @@ public class PostServiceImpl implements PostService {
         //  USA FETCH JOIN!
         Page<Post> posts = postRepository.findByAuthorIdNotInWithAuthor(excludedAuthorIds, pageable);
 
-        System.out.println(" Explore caricato - " + posts.getNumberOfElements() + " post");
+        log.info("{}", " Explore caricato - " + posts.getNumberOfElements() + " post");
 
         return posts.map(post -> mapToResponse(post, currentUserId));
     }
@@ -328,11 +331,11 @@ public class PostServiceImpl implements PostService {
         String publicId = extractPublicIdFromUrl(imageUrl);
 
         try {
-            System.out.println("🗑️ Eliminazione immagine: " + publicId);
+            log.info("{}", "🗑️ Eliminazione immagine: " + publicId);
             storageService.delete(publicId);
-            System.out.println("✅ Immagine eliminata da storage");
+            log.info("✅ Immagine eliminata da storage");
         } catch (Exception e) {
-            System.err.println("⚠️ Errore eliminazione da storage: " + e.getMessage());
+            log.error("{}", "⚠️ Errore eliminazione da storage: " + e.getMessage());
         }
 
         // Rimuovi dalla lista (orphanRemoval = true farà il DELETE)
@@ -385,7 +388,7 @@ public class PostServiceImpl implements PostService {
             return afterUpload;
 
         } catch (Exception e) {
-            System.err.println("⚠️ Errore parsing URL: " + imageUrl);
+            log.error("{}", "⚠️ Errore parsing URL: " + imageUrl);
             return imageUrl;
         }
     }
@@ -436,7 +439,7 @@ public class PostServiceImpl implements PostService {
             try {
                 storageService.delete(postsDir + "/" + oldFileName);
             } catch (Exception e) {
-                System.err.println("⚠️ Impossibile eliminare vecchia immagine: " + e.getMessage());
+                log.error("{}", "⚠️ Impossibile eliminare vecchia immagine: " + e.getMessage());
             }
         }
 
@@ -466,30 +469,30 @@ public class PostServiceImpl implements PostService {
             throw new ForbiddenException("Non puoi eliminare questo post");
         }
 
-        System.out.println("🗑️ Eliminazione post ID: " + postId);
+        log.info("{}", "🗑️ Eliminazione post ID: " + postId);
 
         // ELIMINA PRIMA I COMMENTI ASSOCIATI!
         commentRepository.deleteByPostId(postId);
-        System.out.println(" Commenti eliminati");
+        log.info(" Commenti eliminati");
 
         // ELIMINA I LIKE ASSOCIATI!
         likeRepository.deleteByPostId(postId);
-        System.out.println(" Like eliminati");
+        log.info(" Like eliminati");
 
         // ELIMINA LE NOTIFICHE ASSOCIATE!
         notificationRepository.deleteByPostId(postId);
-        System.out.println(" Notifiche eliminate");
+        log.info(" Notifiche eliminate");
 
         // ELIMINA IL SONDAGGIO SE PRESENTE (votes prima per FK)
         pollRepository.findByPostIdWithOptions(postId).ifPresent(poll -> {
             pollVoteRepository.deleteByPollId(poll.getId());
             pollRepository.delete(poll);
-            System.out.println("\u2705 Sondaggio eliminato");
+            log.info("\u2705 Sondaggio eliminato");
         });
 
         //  INFINE ELIMINA IL POST!
         postRepository.delete(post);
-        System.out.println(" Post eliminato");
+        log.info(" Post eliminato");
     }
 
     // ============================================
@@ -547,7 +550,7 @@ public class PostServiceImpl implements PostService {
                         .build();
             }).orElse(null);
         } catch (Exception e) {
-            System.err.println("⚠️ Errore caricamento poll per post " + post.getId() + ": " + e.getMessage());
+            log.error("{}", "⚠️ Errore caricamento poll per post " + post.getId() + ": " + e.getMessage());
         }
 
         //  Estrai PostImageDto da PostImage entities (con ID stabile per il frontend)
@@ -571,7 +574,7 @@ public class PostServiceImpl implements PostService {
         }
 
         //  DEBUG LOG
-        System.out.println("📊 Post #" + post.getId() + " - Immagini: " + imageUrls.size());
+        log.info("{}", "📊 Post #" + post.getId() + " - Immagini: " + imageUrls.size());
 
         return PostResponse.builder()
                 .id(post.getId())

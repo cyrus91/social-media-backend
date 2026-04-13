@@ -1,14 +1,20 @@
 package com.social.backend.security;
 
 import com.social.backend.components.user.entity.User;
+import com.social.backend.components.user.enums.Role;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
+import java.io.Serial;
+import java.io.Serializable;
 import java.util.Collection;
 import java.util.List;
 
-public class UserDetailsImpl implements UserDetails {
+public class UserDetailsImpl implements UserDetails, Serializable {
+
+    @Serial
+    private static final long serialVersionUID = 1L;
 
     private final User user;
 
@@ -18,8 +24,8 @@ public class UserDetailsImpl implements UserDetails {
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        String role = user.getRole() != null ? user.getRole() : "USER";
-        return List.of(new SimpleGrantedAuthority("ROLE_" + role));
+        Role role = user.getRole() != null ? user.getRole() : Role.USER;
+        return List.of(new SimpleGrantedAuthority("ROLE_" + role.name()));
     }
 
     @Override
@@ -39,7 +45,6 @@ public class UserDetailsImpl implements UserDetails {
 
     @Override
     public boolean isAccountNonLocked() {
-        // Utenti bannati non possono accedere
         return !user.isBanned();
     }
 
@@ -50,7 +55,7 @@ public class UserDetailsImpl implements UserDetails {
 
     @Override
     public boolean isEnabled() {
-        return true;
+        return user.isEmailVerified();
     }
 
     public User getUser() {

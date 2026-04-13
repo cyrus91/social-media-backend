@@ -1,5 +1,7 @@
 package com.social.backend.components.report.service.impl;
 
+import com.social.backend.components.user.enums.Role;
+
 import com.social.backend.common.exception.ResourceNotFoundException;
 import com.social.backend.components.notification.enums.NotificationType;
 import com.social.backend.components.notification.service.NotificationService;
@@ -48,7 +50,7 @@ public class ReportServiceImpl implements ReportService {
         ReportResponse response = mapToResponse(reportRepository.save(report));
 
         // Notifica tutti gli admin
-        userRepository.findByRole("ADMIN").forEach(admin -> {
+        userRepository.findByRole(Role.ADMIN).forEach(admin -> {
             try {
                 notificationService.createNotification(
                         admin.getId(),

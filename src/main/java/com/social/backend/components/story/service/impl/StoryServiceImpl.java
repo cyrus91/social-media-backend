@@ -1,7 +1,10 @@
 package com.social.backend.components.story.service.impl;
 
-import com.social.backend.common.exception.ForbiddenException;
 import com.social.backend.common.exception.NotFoundException;
+import lombok.extern.slf4j.Slf4j;
+
+import com.social.backend.common.exception.ForbiddenException;
+import com.social.backend.common.exception.ResourceNotFoundException;
 import com.social.backend.components.follow.repository.FollowRepository;
 import com.social.backend.components.story.dto.StoryResponse;
 import com.social.backend.components.story.dto.StoryViewerResponse;
@@ -26,6 +29,7 @@ import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class StoryServiceImpl implements StoryService {
 
     private final StoryRepository storyRepository;
@@ -216,6 +220,6 @@ public class StoryServiceImpl implements StoryService {
         // Prima elimina le view (FK constraint), poi le storie
         storyViewRepository.deleteByExpiredStories(now);
         int deleted = storyRepository.deleteExpiredStories(now);
-        if (deleted > 0) System.out.println("🧹 Storie scadute eliminate: " + deleted);
+        if (deleted > 0) log.info("{}", "🧹 Storie scadute eliminate: " + deleted);
     }
 }

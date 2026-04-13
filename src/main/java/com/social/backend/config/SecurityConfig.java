@@ -1,5 +1,7 @@
 package com.social.backend.config;
 
+import com.social.backend.components.user.enums.Role;
+
 import com.social.backend.components.auth.oauth2.OAuth2SuccessHandler;
 import com.social.backend.security.JwtAuthenticationFilter;
 import jakarta.servlet.http.HttpServletResponse;
@@ -42,7 +44,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/auth/**").permitAll()
                         .requestMatchers("/oauth2/**", "/login/oauth2/**").permitAll()
                         .requestMatchers("/api/ai/**").authenticated()
-                        .requestMatchers("/api/admin/**").hasRole("ADMIN")
+                        .requestMatchers("/api/admin/**").hasRole(Role.ADMIN.name())
                         .requestMatchers("/api/messages/**").authenticated()
                         .requestMatchers(HttpMethod.GET, "/api/users/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/posts/**").permitAll()

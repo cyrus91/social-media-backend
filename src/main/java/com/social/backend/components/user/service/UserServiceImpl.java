@@ -1,5 +1,9 @@
 package com.social.backend.components.user.service;
 
+import com.social.backend.components.user.enums.Role;
+
+import lombok.extern.slf4j.Slf4j;
+
 import com.social.backend.common.exception.DuplicateResourceException;
 import com.social.backend.common.exception.ResourceNotFoundException;
 import com.social.backend.components.auth.repository.RefreshTokenRepository;
@@ -23,6 +27,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
+@Slf4j
 public class UserServiceImpl implements UserService {
 
     private final UserRepository userRepository;
@@ -75,7 +80,7 @@ public class UserServiceImpl implements UserService {
                 .followerCount(followerCount != null ? followerCount.intValue() : 0)
                 .followingCount(followingCount != null ? followingCount.intValue() : 0)
                 .postCount(postCount != null ? postCount.intValue() : 0)
-                .role(user.getRole() != null ? user.getRole() : "USER")
+                .role(user.getRole() != null ? user.getRole() : Role.USER)
                 .banned(user.isBanned())
                 .emailVerified(user.isEmailVerified())
                 .build();
@@ -96,7 +101,7 @@ public class UserServiceImpl implements UserService {
         Long followingCount = followRepository.countByFollowerId(user.getId());
         Long postCount = Long.valueOf(postRepository.countByAuthorId(user.getId()));
 
-        System.out.println("📊 Stats per " + username + " - Followers: " + followerCount + ", Following: " + followingCount + ", Posts: " + postCount);
+        log.info("{}", "📊 Stats per " + username + " - Followers: " + followerCount + ", Following: " + followingCount + ", Posts: " + postCount);
 
         return UserResponse.builder()
                 .id(user.getId())
@@ -110,7 +115,7 @@ public class UserServiceImpl implements UserService {
                 .followerCount(followerCount != null ? followerCount.intValue() : 0)
                 .followingCount(followingCount != null ? followingCount.intValue() : 0)
                 .postCount(postCount != null ? postCount.intValue() : 0)
-                .role(user.getRole() != null ? user.getRole() : "USER")
+                .role(user.getRole() != null ? user.getRole() : Role.USER)
                 .banned(user.isBanned())
                 .emailVerified(user.isEmailVerified())
                 .build();
@@ -256,7 +261,7 @@ public class UserServiceImpl implements UserService {
                 .followerCount(followerCount != null ? followerCount.intValue() : 0)
                 .followingCount(followingCount != null ? followingCount.intValue() : 0)
                 .postCount(postCount != null ? postCount.intValue() : 0)
-                .role(user.getRole() != null ? user.getRole() : "USER")
+                .role(user.getRole() != null ? user.getRole() : Role.USER)
                 .banned(user.isBanned())
                 .emailVerified(user.isEmailVerified())
                 .build();
@@ -285,7 +290,7 @@ public class UserServiceImpl implements UserService {
                 .followerCount(followerCount != null ? followerCount.intValue() : 0)
                 .followingCount(followingCount != null ? followingCount.intValue() : 0)
                 .postCount(postCount != null ? postCount.intValue() : 0)
-                .role(user.getRole() != null ? user.getRole() : "USER")
+                .role(user.getRole() != null ? user.getRole() : Role.USER)
                 .banned(user.isBanned())
                 .emailVerified(user.isEmailVerified())
                 .build();
@@ -314,7 +319,7 @@ public class UserServiceImpl implements UserService {
                             .followerCount(followerCount != null ? followerCount.intValue() : 0)
                             .followingCount(followingCount != null ? followingCount.intValue() : 0)
                             .postCount(postCount != null ? postCount.intValue() : 0)
-                            .role(user.getRole() != null ? user.getRole() : "USER")
+                            .role(user.getRole() != null ? user.getRole() : Role.USER)
                             .banned(user.isBanned())
                             .emailVerified(user.isEmailVerified())
                             .build();
@@ -328,7 +333,7 @@ public class UserServiceImpl implements UserService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("Utente non trovato"));
 
-        System.out.println("🗑️ Eliminazione account: " + user.getUsername());
+        log.info("{}", "🗑️ Eliminazione account: " + user.getUsername());
 
         // Le relazioni con @ManyToOne NON hanno cascade, quindi JPA non elimina automaticamente.
         // Eliminiamo manualmente nell'ordine corretto per evitare constraint violations.
@@ -356,6 +361,6 @@ public class UserServiceImpl implements UserService {
         // 7. Elimina utente
         userRepository.delete(user);
 
-        System.out.println("✅ Account eliminato: " + user.getUsername());
+        log.info("{}", "✅ Account eliminato: " + user.getUsername());
     }
 }

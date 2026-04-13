@@ -1,5 +1,7 @@
 package com.social.backend.components.user.dto;
 
+import com.social.backend.components.user.enums.Role;
+
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -24,7 +26,7 @@ public class UserResponse {
     private Integer followerCount;
     private Integer followingCount;
     private Integer postCount;
-    private String role;
+    private Role role;
     private boolean banned;
     private boolean emailVerified;
 }

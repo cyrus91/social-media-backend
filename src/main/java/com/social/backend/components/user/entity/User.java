@@ -1,6 +1,10 @@
 package com.social.backend.components.user.entity;
 
+import com.social.backend.components.user.enums.Role;
+
 import jakarta.persistence.*;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import lombok.*;
 
 import java.time.LocalDateTime;
@@ -63,7 +67,8 @@ public class User {
 
     @Setter
     @Column(name = "role", nullable = false, length = 20, columnDefinition = "varchar(20) default 'USER'")
-    private String role = "USER";
+    @Enumerated(EnumType.STRING)
+    private Role role = Role.USER;
 
     @Setter
     @Column(name = "banned", nullable = false, columnDefinition = "boolean default false")
@@ -87,7 +92,7 @@ public class User {
     @PrePersist
     protected void onCreate() {
         if (createdAt == null) createdAt = LocalDateTime.now();
-        if (role == null) role = "USER";
+        if (role == null) role = Role.USER;
     }
 
     public User(String username, String email, String passwordHash, String bio, String avatarUrl) {
@@ -97,7 +102,7 @@ public class User {
         this.bio = bio;
         this.avatarUrl = avatarUrl;
         this.emailVerified = false;
-        this.role = "USER";
+        this.role = Role.USER;
         this.banned = false;
     }
 }

@@ -1,5 +1,7 @@
 package com.social.backend.components.auth.oauth2;
 
+import com.social.backend.components.user.enums.Role;
+
 import com.social.backend.components.auth.service.RefreshTokenService;
 import com.social.backend.components.user.entity.User;
 import com.social.backend.components.user.repository.UserRepository;
@@ -74,7 +76,7 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
                     .avatarUrl(picture)
                     .googleId(googleId)
                     .emailVerified(true)
-                    .role("USER")
+                    .role(Role.USER)
                     .banned(false)
                     .build();
             userRepository.save(user);
