@@ -4,7 +4,6 @@ import com.social.backend.common.exception.ForbiddenException;
 import com.social.backend.common.exception.ResourceNotFoundException;
 import com.social.backend.components.comment.repository.CommentRepository;
 import com.social.backend.components.poll.repository.PollRepository;
-import com.social.backend.components.poll.repository.PollOptionRepository;
 import com.social.backend.components.poll.repository.PollVoteRepository;
 import com.social.backend.components.poll.dto.PollResponse;
 import com.social.backend.components.poll.dto.PollOptionResponse;
@@ -47,7 +46,6 @@ public class PostServiceImpl implements PostService {
     private final BookmarkRepository bookmarkRepository;
     private final PollRepository pollRepository;
     private final PollVoteRepository pollVoteRepository;
-    private final PollOptionRepository pollOptionRepository;
     private final FollowRepository followRepository;
     private final StorageService storageService;
     private final NotificationRepository notificationRepository;
@@ -59,7 +57,7 @@ public class PostServiceImpl implements PostService {
     public PostServiceImpl(PostRepository postRepository,
                            UserRepository userRepository,
                            LikeRepository likeRepository,
-                           CommentRepository commentRepository, BookmarkRepository bookmarkRepository, PollRepository pollRepository, PollVoteRepository pollVoteRepository, PollOptionRepository pollOptionRepository,
+                           CommentRepository commentRepository, BookmarkRepository bookmarkRepository, PollRepository pollRepository, PollVoteRepository pollVoteRepository,
                            FollowRepository followRepository,
                            StorageService storageService, NotificationRepository notificationRepository,
                            MentionService mentionService) {
@@ -70,7 +68,6 @@ public class PostServiceImpl implements PostService {
         this.bookmarkRepository = bookmarkRepository;
         this.pollRepository = pollRepository;
         this.pollVoteRepository = pollVoteRepository;
-        this.pollOptionRepository = pollOptionRepository;
         this.followRepository = followRepository;
         this.storageService = storageService;
         this.notificationRepository = notificationRepository;
@@ -527,6 +524,32 @@ public class PostServiceImpl implements PostService {
         boolean bookmarked = currentUserId != null &&
                 bookmarkRepository.existsByUserIdAndPostId(currentUserId, post.getId());
 
+        // Carica sondaggio se presente
+        PollResponse pollData = null;
+        try {
+            pollData = pollRepository.findByPostIdWithOptions(post.getId()).map(p -> {
+                long total = p.getOptions().stream().mapToLong(o -> o.getVoteCount() != null ? o.getVoteCount() : 0L).sum();
+                Long votedOptionId = currentUserId != null
+                        ? pollVoteRepository.findVotedOptionId(p.getId(), currentUserId).orElse(null)
+                        : null;
+                return PollResponse.builder()
+                        .id(p.getId())
+                        .question(p.getQuestion())
+                        .options(p.getOptions().stream().map(o -> PollOptionResponse.builder()
+                                .id(o.getId()).text(o.getText())
+                                .voteCount(o.getVoteCount() != null ? o.getVoteCount() : 0L)
+                                .percentage(total > 0 ? (o.getVoteCount() != null ? o.getVoteCount() : 0L) * 100.0 / total : 0)
+                                .build()).toList())
+                        .totalVotes(total)
+                        .votedOptionId(votedOptionId)
+                        .expired(p.isExpired())
+                        .expiresAt(p.getExpiresAt().atZone(ZoneId.systemDefault()).toInstant())
+                        .build();
+            }).orElse(null);
+        } catch (Exception e) {
+            System.err.println("⚠️ Errore caricamento poll per post " + post.getId() + ": " + e.getMessage());
+        }
+
         //  Estrai PostImageDto da PostImage entities (con ID stabile per il frontend)
         List<com.social.backend.components.post.dto.PostImageDto> imageDtos = post.getImages().stream()
                 .sorted(Comparator.comparingInt(PostImage::getDisplayOrder))
@@ -567,6 +590,7 @@ public class PostServiceImpl implements PostService {
                 .viewCount(post.getViewCount())
                 .liked(liked)
                 .bookmarked(bookmarked)
+                .poll(pollData)
                 .build();
     }
 }
