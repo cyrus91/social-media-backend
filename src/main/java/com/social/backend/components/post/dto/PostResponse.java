@@ -1,5 +1,6 @@
 package com.social.backend.components.post.dto;
 
+import com.social.backend.components.poll.dto.PollResponse;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -36,4 +37,5 @@ public class PostResponse {
     private Long viewCount;
     private Boolean liked;
     private Boolean bookmarked;
+    private PollResponse poll;
 }
