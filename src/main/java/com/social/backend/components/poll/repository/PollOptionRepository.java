@@ -16,6 +16,6 @@ public interface PollOptionRepository extends JpaRepository<PollOption, Long> {
 
     @Modifying
     @Transactional
-    @Query("UPDATE PollOption o SET o.voteCount = GREATEST(o.voteCount - 1, 0) WHERE o.id = :optionId")
+    @Query("UPDATE PollOption o SET o.voteCount = o.voteCount - 1 WHERE o.id = :optionId AND o.voteCount > 0")
     void decrementVoteCount(@Param("optionId") Long optionId);
 }
