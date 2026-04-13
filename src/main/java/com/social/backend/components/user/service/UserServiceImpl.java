@@ -68,6 +68,8 @@ public class UserServiceImpl implements UserService {
                 .username(user.getUsername())
                 .email(user.getEmail())
                 .bio(user.getBio())
+                .displayName(user.getDisplayName())
+                .website(user.getWebsite())
                 .avatarUrl(user.getAvatarUrl())
                 .createdAt(user.getCreatedAt())
                 .followerCount(followerCount != null ? followerCount.intValue() : 0)
@@ -101,6 +103,8 @@ public class UserServiceImpl implements UserService {
                 .username(user.getUsername())
                 .email(user.getEmail())
                 .bio(user.getBio())
+                .displayName(user.getDisplayName())
+                .website(user.getWebsite())
                 .avatarUrl(user.getAvatarUrl())
                 .createdAt(user.getCreatedAt())
                 .followerCount(followerCount != null ? followerCount.intValue() : 0)
@@ -136,6 +140,14 @@ public class UserServiceImpl implements UserService {
         // Aggiorna bio se fornita
         if (request.getBio() != null) {
             user.setBio(request.getBio());
+        }
+
+        if (request.getDisplayName() != null) {
+            user.setDisplayName(request.getDisplayName().isBlank() ? null : request.getDisplayName().trim());
+        }
+
+        if (request.getWebsite() != null) {
+            user.setWebsite(request.getWebsite().isBlank() ? null : request.getWebsite().trim());
         }
 
         // Aggiorna avatarUrl se fornito
@@ -237,6 +249,8 @@ public class UserServiceImpl implements UserService {
                 .username(user.getUsername())
                 .email(user.getEmail())
                 .bio(user.getBio())
+                .displayName(user.getDisplayName())
+                .website(user.getWebsite())
                 .avatarUrl(user.getAvatarUrl())
                 .createdAt(user.getCreatedAt())
                 .followerCount(followerCount != null ? followerCount.intValue() : 0)
@@ -264,6 +278,8 @@ public class UserServiceImpl implements UserService {
                 .username(user.getUsername())
                 .email(user.getEmail())
                 .bio(user.getBio())
+                .displayName(user.getDisplayName())
+                .website(user.getWebsite())
                 .avatarUrl(user.getAvatarUrl())
                 .createdAt(user.getCreatedAt())
                 .followerCount(followerCount != null ? followerCount.intValue() : 0)
@@ -291,6 +307,8 @@ public class UserServiceImpl implements UserService {
                             .username(user.getUsername())
                             .email(user.getEmail())
                             .bio(user.getBio())
+                            .displayName(user.getDisplayName())
+                            .website(user.getWebsite())
                             .avatarUrl(user.getAvatarUrl())
                             .createdAt(user.getCreatedAt())
                             .followerCount(followerCount != null ? followerCount.intValue() : 0)

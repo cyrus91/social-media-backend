@@ -16,6 +16,12 @@ public class UpdateUserRequest {
     @Size(max = 500, message = "La bio non può superare 500 caratteri")
     private String bio;
 
+    @Size(max = 100, message = "Il nome non può superare 100 caratteri")
+    private String displayName;
+
+    @Size(max = 255, message = "Il sito web non può superare 255 caratteri")
+    private String website;
+
     private String avatarUrl;
 
     @Size(min = 6, message = "La password deve essere almeno 6 caratteri")

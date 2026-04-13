@@ -196,16 +196,19 @@ public class AuthServiceImpl implements AuthService {
     }
 
     private UserResponse buildUserResponse(User user) {
-        UserResponse userResponse = new UserResponse();
-        userResponse.setId(user.getId());
-        userResponse.setUsername(user.getUsername());
-        userResponse.setEmail(user.getEmail());
-        userResponse.setBio(user.getBio());
-        userResponse.setAvatarUrl(user.getAvatarUrl());
-        userResponse.setCreatedAt(user.getCreatedAt());
-        userResponse.setRole(user.getRole() != null ? user.getRole() : "USER");
-        userResponse.setBanned(user.isBanned());
-        return userResponse;
+        return UserResponse.builder()
+                .id(user.getId())
+                .username(user.getUsername())
+                .email(user.getEmail())
+                .bio(user.getBio())
+                .displayName(user.getDisplayName())
+                .website(user.getWebsite())
+                .avatarUrl(user.getAvatarUrl())
+                .createdAt(user.getCreatedAt())
+                .role(user.getRole() != null ? user.getRole() : "USER")
+                .banned(user.isBanned())
+                .emailVerified(user.isEmailVerified())
+                .build();
     }
 
     @Override

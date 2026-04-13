@@ -38,6 +38,14 @@ public class User {
     private String bio;
 
     @Setter
+    @Column(name = "display_name", length = 100)
+    private String displayName;
+
+    @Setter
+    @Column(name = "website", length = 255)
+    private String website;
+
+    @Setter
     @Column(name = "avatar_url", length = 500)
     private String avatarUrl;
 

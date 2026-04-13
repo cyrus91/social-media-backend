@@ -1,18 +1,24 @@
 package com.social.backend.components.user.dto;
 
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 
 @Data
 @Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class UserResponse {
 
     private Long id;
     private String username;
     private String email;
     private String bio;
+    private String displayName;
+    private String website;
     private String avatarUrl;
     private LocalDateTime createdAt;
     private Integer followerCount;
@@ -21,23 +27,4 @@ public class UserResponse {
     private String role;
     private boolean banned;
     private boolean emailVerified;
-
-    public UserResponse(Long id, String username, String email, String bio, String avatarUrl,
-                        LocalDateTime createdAt, Integer followerCount, Integer followingCount,
-                        Integer postCount, String role, boolean banned, boolean emailVerified) {
-        this.id = id;
-        this.username = username;
-        this.email = email;
-        this.bio = bio;
-        this.avatarUrl = avatarUrl;
-        this.createdAt = createdAt;
-        this.followerCount = followerCount;
-        this.followingCount = followingCount;
-        this.postCount = postCount;
-        this.role = role;
-        this.banned = banned;
-        this.emailVerified = emailVerified;
-    }
-
-    public UserResponse() {}
 }
