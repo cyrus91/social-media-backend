@@ -6,6 +6,8 @@ import com.social.backend.components.comment.repository.CommentRepository;
 import com.social.backend.components.poll.repository.PollRepository;
 import com.social.backend.components.poll.repository.PollOptionRepository;
 import com.social.backend.components.poll.repository.PollVoteRepository;
+import com.social.backend.components.poll.dto.PollResponse;
+import com.social.backend.components.poll.dto.PollOptionResponse;
 import com.social.backend.components.bookmark.repository.BookmarkRepository;
 import com.social.backend.components.follow.repository.FollowRepository;
 import com.social.backend.components.like.repository.LikeRepository;
@@ -57,11 +59,7 @@ public class PostServiceImpl implements PostService {
     public PostServiceImpl(PostRepository postRepository,
                            UserRepository userRepository,
                            LikeRepository likeRepository,
-                           CommentRepository commentRepository,
-                           BookmarkRepository bookmarkRepository,
-                           PollRepository pollRepository,
-                           PollVoteRepository pollVoteRepository,
-                           PollOptionRepository pollOptionRepository,
+                           CommentRepository commentRepository, BookmarkRepository bookmarkRepository, PollRepository pollRepository, PollVoteRepository pollVoteRepository, PollOptionRepository pollOptionRepository,
                            FollowRepository followRepository,
                            StorageService storageService, NotificationRepository notificationRepository,
                            MentionService mentionService) {
