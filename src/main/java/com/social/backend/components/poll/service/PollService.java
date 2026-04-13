@@ -7,4 +7,5 @@ public interface PollService {
     PollResponse createForPost(Long postId, CreatePollRequest request);
     PollResponse getByPostId(Long postId, Long currentUserId);
     PollResponse vote(Long pollId, Long optionId, Long userId);
+    PollResponse updatePoll(Long pollId, Long requesterId, String question, java.util.List<String> options);
 }

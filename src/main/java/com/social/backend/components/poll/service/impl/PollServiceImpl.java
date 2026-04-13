@@ -77,30 +77,57 @@ public class PollServiceImpl implements PollService {
         if (poll.isExpired())
             throw new IllegalStateException("Il sondaggio è scaduto");
 
-        if (pollVoteRepository.existsByPollIdAndUserId(pollId, userId))
-            throw new IllegalStateException("Hai già votato in questo sondaggio");
-
         PollOption option = pollOptionRepository.findById(optionId)
                 .orElseThrow(() -> new ResourceNotFoundException("Opzione non trovata"));
 
         if (!option.getPoll().getId().equals(pollId))
             throw new IllegalArgumentException("Opzione non appartiene a questo sondaggio");
 
+        // Se ha già votato → cambia voto (rimuovi vecchio, aggiungi nuovo)
+        pollVoteRepository.findVotedOptionId(pollId, userId).ifPresent(oldOptionId -> {
+            pollVoteRepository.deleteByPollIdAndUserId(pollId, userId);
+            pollOptionRepository.decrementVoteCount(oldOptionId);
+        });
+
         var user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("Utente non trovato"));
 
         pollVoteRepository.save(PollVote.builder()
-                .poll(poll)
-                .option(option)
-                .user(user)
-                .build());
-
+                .poll(poll).option(option).user(user).build());
         pollOptionRepository.incrementVoteCount(optionId);
 
-        // Ricarica con dati aggiornati
-        Poll updated = pollRepository.findByPostIdWithOptions(poll.getPost().getId())
-                .orElseThrow();
+        Poll updated = pollRepository.findByPostIdWithOptions(poll.getPost().getId()).orElseThrow();
         return mapToResponse(updated, userId);
+    }
+
+    @Override
+    @Transactional
+    public PollResponse updatePoll(Long pollId, Long requesterId, String question, java.util.List<String> options) {
+        Poll poll = pollRepository.findById(pollId)
+                .orElseThrow(() -> new ResourceNotFoundException("Sondaggio non trovato"));
+
+        if (!poll.getPost().getAuthor().getId().equals(requesterId))
+            throw new com.social.backend.common.exception.ForbiddenException("Non puoi modificare questo sondaggio");
+
+        long totalVotes = poll.getOptions().stream().mapToLong(PollOption::getVoteCount).sum();
+        if (totalVotes > 0)
+            throw new IllegalStateException("Non puoi modificare un sondaggio che ha già ricevuto voti");
+
+        if (question != null && !question.isBlank())
+            poll.setQuestion(question.trim());
+
+        if (options != null && options.size() >= 2 && options.size() <= 4) {
+            // Rimuovi opzioni vecchie e ricrea
+            poll.getOptions().clear();
+            pollRepository.save(poll); // flush per cascade orphanRemoval
+            options.forEach(text -> {
+                PollOption opt = PollOption.builder().poll(poll).text(text.trim()).build();
+                pollOptionRepository.save(opt);
+            });
+        }
+
+        Poll updated = pollRepository.findByPostIdWithOptions(poll.getPost().getId()).orElseThrow();
+        return mapToResponse(updated, requesterId);
     }
 
     private PollResponse mapToResponse(Poll poll, Long currentUserId) {

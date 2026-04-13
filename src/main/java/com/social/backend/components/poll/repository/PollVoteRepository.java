@@ -13,4 +13,8 @@ public interface PollVoteRepository extends JpaRepository<PollVote, Long> {
 
     @Query("SELECT v.option.id FROM PollVote v WHERE v.poll.id = :pollId AND v.user.id = :userId")
     Optional<Long> findVotedOptionId(@Param("pollId") Long pollId, @Param("userId") Long userId);
+
+    void deleteByPollIdAndUserId(Long pollId, Long userId);
+
+    void deleteByPollId(Long pollId);
 }

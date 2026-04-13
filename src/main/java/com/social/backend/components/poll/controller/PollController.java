@@ -51,4 +51,21 @@ public class PollController {
             return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of("error", e.getMessage()));
         }
     }
+
+    // Modifica sondaggio (solo se nessuno ha votato)
+    @PatchMapping("/{pollId}")
+    public ResponseEntity<?> update(
+            @AuthenticationPrincipal UserDetailsImpl userDetails,
+            @PathVariable Long pollId,
+            @RequestBody Map<String, Object> body) {
+        if (userDetails == null) return ResponseEntity.status(401).build();
+        try {
+            String question = (String) body.get("question");
+            @SuppressWarnings("unchecked")
+            java.util.List<String> options = (java.util.List<String>) body.get("options");
+            return ResponseEntity.ok(pollService.updatePoll(pollId, userDetails.getUser().getId(), question, options));
+        } catch (IllegalStateException e) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of("error", e.getMessage()));
+        }
+    }
 }
