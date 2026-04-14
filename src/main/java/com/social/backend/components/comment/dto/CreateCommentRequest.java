@@ -17,4 +17,8 @@ public class CreateCommentRequest {
 
     // Opzionale — se presente è una risposta a un commento esistente
     private Long parentId;
+
+    // Opzionale — ID del commento specifico a cui si sta rispondendo (per notifiche corrette
+    // nelle risposte annidate, dove parentId punta al root ma replyToCommentId punta all'autore da notificare)
+    private Long replyToCommentId;
 }

@@ -88,11 +88,17 @@ public class CommentServiceImpl implements CommentService {
         Comment saved = commentRepository.save(comment);
 
         if (request.getParentId() != null) {
-            // Risposta a un commento → notifica all'autore del commento padre
-            commentRepository.findById(request.getParentId()).ifPresent(parent -> {
-                if (!parent.getAuthor().getId().equals(authorId)) {
+            // Risposta a un commento → notifica all'autore del commento direttamente replicato.
+            // Se replyToCommentId è presente (risposta a una risposta), usa quello per la notifica;
+            // altrimenti usa parentId (risposta normale a un commento root).
+            Long notifyTargetId = request.getReplyToCommentId() != null
+                    ? request.getReplyToCommentId()
+                    : request.getParentId();
+
+            commentRepository.findById(notifyTargetId).ifPresent(target -> {
+                if (!target.getAuthor().getId().equals(authorId)) {
                     notificationService.createNotification(
-                            parent.getAuthor().getId(), authorId,
+                            target.getAuthor().getId(), authorId,
                             NotificationType.COMMENT, request.getPostId(),
                             saved.getId(), author.getUsername() + " ha risposto al tuo commento");
                 }
