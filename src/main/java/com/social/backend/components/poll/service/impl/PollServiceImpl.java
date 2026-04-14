@@ -13,6 +13,8 @@ import com.social.backend.components.poll.repository.PollVoteRepository;
 import com.social.backend.components.poll.service.PollService;
 import com.social.backend.components.post.repository.PostRepository;
 import com.social.backend.components.user.repository.UserRepository;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -30,6 +32,9 @@ public class PollServiceImpl implements PollService {
     private final PollVoteRepository pollVoteRepository;
     private final PostRepository postRepository;
     private final UserRepository userRepository;
+
+    @PersistenceContext
+    private EntityManager entityManager;
 
     @Override
     @Transactional
@@ -96,6 +101,10 @@ public class PollServiceImpl implements PollService {
                 .poll(poll).option(option).user(user).build());
         pollOptionRepository.incrementVoteCount(optionId);
 
+        // Flush + clear della first-level cache per caricare dati freschi dal DB
+        entityManager.flush();
+        entityManager.clear();
+
         Poll updated = pollRepository.findByPostIdWithOptions(poll.getPost().getId()).orElseThrow();
         return mapToResponse(updated, userId);
     }
@@ -119,11 +128,19 @@ public class PollServiceImpl implements PollService {
         if (options != null && options.size() >= 2 && options.size() <= 4) {
             // Rimuovi opzioni vecchie e ricrea
             poll.getOptions().clear();
-            pollRepository.save(poll); // flush per cascade orphanRemoval
+            pollRepository.save(poll); // schedula orphanRemoval
+            // Flush per eseguire i DELETE, poi clear per pulire la cache
+            entityManager.flush();
+            entityManager.clear();
+            // Ricarica il poll dalla cache pulita
+            Poll freshPoll = pollRepository.findById(pollId).orElseThrow();
             options.forEach(text -> {
-                PollOption opt = PollOption.builder().poll(poll).text(text.trim()).build();
+                PollOption opt = PollOption.builder().poll(freshPoll).text(text.trim()).build();
                 pollOptionRepository.save(opt);
             });
+            // Flush + clear prima del reload finale
+            entityManager.flush();
+            entityManager.clear();
         }
 
         Poll updated = pollRepository.findByPostIdWithOptions(poll.getPost().getId()).orElseThrow();

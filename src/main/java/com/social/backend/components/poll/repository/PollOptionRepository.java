@@ -9,12 +9,12 @@ import org.springframework.transaction.annotation.Transactional;
 
 public interface PollOptionRepository extends JpaRepository<PollOption, Long> {
 
-    @Modifying
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Transactional
     @Query("UPDATE PollOption o SET o.voteCount = o.voteCount + 1 WHERE o.id = :optionId")
     void incrementVoteCount(@Param("optionId") Long optionId);
 
-    @Modifying
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Transactional
     @Query("UPDATE PollOption o SET o.voteCount = o.voteCount - 1 WHERE o.id = :optionId AND o.voteCount > 0")
     void decrementVoteCount(@Param("optionId") Long optionId);
