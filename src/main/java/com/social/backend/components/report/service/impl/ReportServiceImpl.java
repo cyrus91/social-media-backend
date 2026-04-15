@@ -32,7 +32,9 @@ public class ReportServiceImpl implements ReportService {
     @Override
     @Transactional
     public ReportResponse create(Long reporterId, CreateReportRequest request) {
-        if (reportRepository.existsByReporterIdAndPostId(reporterId, request.getPostId())) {
+        // Blocca solo se esiste già una segnalazione PENDING o REVIEWED
+        // Permette di ri-segnalare se la precedente è stata DISMISSED
+        if (reportRepository.existsActiveByReporterIdAndPostId(reporterId, request.getPostId())) {
             throw new IllegalStateException("Hai già segnalato questo post");
         }
         var reporter = userRepository.findById(reporterId)

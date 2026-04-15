@@ -6,6 +6,10 @@ import com.social.backend.components.bookmark.repository.BookmarkRepository;
 import com.social.backend.components.bookmark.service.BookmarkService;
 import com.social.backend.components.like.repository.LikeRepository;
 import com.social.backend.components.comment.repository.CommentRepository;
+import com.social.backend.components.poll.dto.PollOptionResponse;
+import com.social.backend.components.poll.dto.PollResponse;
+import com.social.backend.components.poll.repository.PollRepository;
+import com.social.backend.components.poll.repository.PollVoteRepository;
 import com.social.backend.components.post.dto.PostImageDto;
 import com.social.backend.components.post.dto.PostResponse;
 import com.social.backend.components.post.entity.Post;
@@ -14,6 +18,7 @@ import com.social.backend.components.post.repository.PostRepository;
 import com.social.backend.components.user.entity.User;
 import com.social.backend.components.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
@@ -23,6 +28,7 @@ import java.time.ZoneId;
 import java.util.Comparator;
 import java.util.List;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class BookmarkServiceImpl implements BookmarkService {
@@ -32,6 +38,8 @@ public class BookmarkServiceImpl implements BookmarkService {
     private final UserRepository userRepository;
     private final LikeRepository likeRepository;
     private final CommentRepository commentRepository;
+    private final PollRepository pollRepository;
+    private final PollVoteRepository pollVoteRepository;
 
     @Override
     @Transactional
@@ -82,6 +90,32 @@ public class BookmarkServiceImpl implements BookmarkService {
             imageUrls = List.of(post.getImageUrl());
         }
 
+        // Carica sondaggio se presente
+        PollResponse pollData = null;
+        try {
+            pollData = pollRepository.findByPostIdWithOptions(post.getId()).map(p -> {
+                long total = p.getOptions().stream().mapToLong(o -> o.getVoteCount() != null ? o.getVoteCount() : 0L).sum();
+                Long votedOptionId = currentUserId != null
+                        ? pollVoteRepository.findVotedOptionId(p.getId(), currentUserId).orElse(null)
+                        : null;
+                return PollResponse.builder()
+                        .id(p.getId())
+                        .question(p.getQuestion())
+                        .options(p.getOptions().stream().map(o -> PollOptionResponse.builder()
+                                .id(o.getId()).text(o.getText())
+                                .voteCount(o.getVoteCount() != null ? o.getVoteCount() : 0L)
+                                .percentage(total > 0 ? (o.getVoteCount() != null ? o.getVoteCount() : 0L) * 100.0 / total : 0)
+                                .build()).toList())
+                        .totalVotes(total)
+                        .votedOptionId(votedOptionId)
+                        .expired(p.isExpired())
+                        .expiresAt(p.getExpiresAt().atZone(ZoneId.systemDefault()).toInstant())
+                        .build();
+            }).orElse(null);
+        } catch (Exception e) {
+            log.warn("Errore caricamento poll per post bookmark {}: {}", post.getId(), e.getMessage());
+        }
+
         return PostResponse.builder()
                 .id(post.getId())
                 .content(post.getContent())
@@ -99,6 +133,7 @@ public class BookmarkServiceImpl implements BookmarkService {
                 .viewCount(post.getViewCount())
                 .liked(liked)
                 .bookmarked(bookmarked)
+                .poll(pollData)
                 .build();
     }
 }
