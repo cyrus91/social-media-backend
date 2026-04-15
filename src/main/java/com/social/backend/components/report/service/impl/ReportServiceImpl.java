@@ -4,6 +4,7 @@ import com.social.backend.components.user.enums.Role;
 
 import com.social.backend.common.exception.ResourceNotFoundException;
 import com.social.backend.components.notification.enums.NotificationType;
+import com.social.backend.components.notification.repository.NotificationRepository;
 import com.social.backend.components.notification.service.NotificationService;
 import com.social.backend.components.post.repository.PostRepository;
 import com.social.backend.components.report.dto.CreateReportRequest;
@@ -28,13 +29,14 @@ public class ReportServiceImpl implements ReportService {
     private final PostRepository postRepository;
     private final UserRepository userRepository;
     private final NotificationService notificationService;
+    private final NotificationRepository notificationRepository;
 
     @Override
     @Transactional
     public ReportResponse create(Long reporterId, CreateReportRequest request) {
         // Blocca solo se esiste già una segnalazione PENDING o REVIEWED
         // Permette di ri-segnalare se la precedente è stata DISMISSED
-        if (reportRepository.existsActiveByReporterIdAndPostId(reporterId, request.getPostId())) {
+        if (reportRepository.existsByReporterIdAndPostIdAndStatusNot(reporterId, request.getPostId(), Report.ReportStatus.DISMISSED)) {
             throw new IllegalStateException("Hai già segnalato questo post");
         }
         var reporter = userRepository.findById(reporterId)
@@ -51,9 +53,12 @@ public class ReportServiceImpl implements ReportService {
 
         ReportResponse response = mapToResponse(reportRepository.save(report));
 
-        // Notifica tutti gli admin
+        // Notifica tutti gli admin — elimina prima eventuali notifiche precedenti dello
+        // stesso reporter (ri-segnalazione dopo DISMISSED) per bypassare il dedup
         userRepository.findByRole(Role.ADMIN).forEach(admin -> {
             try {
+                notificationRepository.deleteByRecipientIdAndActorIdAndType(
+                        admin.getId(), reporterId, NotificationType.REPORT);
                 notificationService.createNotification(
                         admin.getId(),
                         reporterId,
