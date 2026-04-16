@@ -94,7 +94,8 @@ WebSocket uses STOMP over SockJS at `/ws`. `WebSocketConfig` validates JWT on CO
 
 `SecurityConfig` defines:
 - Public GET endpoints: `/api/users/**`, `/api/posts/**`, `/api/comments/**`, `/api/follows/**`, `/api/stories/user/**`
-- Public entirely: `/api/auth/**`, `/oauth2/**`, `/uploads/**`, `/ws/**`, `/actuator/**`, Swagger
+- Public entirely: `/api/auth/**`, `/oauth2/**`, `/uploads/**`, `/ws/**`, Swagger
+- Public health check only: `/actuator/health` (usato da Koyeb per liveness probe)
 - `ADMIN` only: `/api/admin/**`
 - Everything else: authenticated
 
