@@ -10,6 +10,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.security.web.authentication.SimpleUrlAuthenticationSuccessHandler;
@@ -17,6 +18,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.io.IOException;
+import java.time.Duration;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -27,6 +29,11 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
     private final UserRepository userRepository;
     private final JwtUtil jwtUtil;
     private final RefreshTokenService refreshTokenService;
+    private final StringRedisTemplate redisTemplate;
+
+    // Prefisso chiave Redis e TTL del codice temporaneo
+    private static final String OAUTH2_CODE_PREFIX = "oauth2:code:";
+    private static final Duration CODE_TTL = Duration.ofMinutes(2);
 
     @Value("${app.frontend-url}")
     private String frontendUrl;
@@ -86,10 +93,14 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
         String jwt = jwtUtil.generateToken(user.getUsername());
         var refreshToken = refreshTokenService.createRefreshToken(user.getId());
 
-        // Redirect al frontend con token nei query params
-        String redirectUrl = frontendUrl + "/oauth2/callback"
-                + "?token=" + jwt
-                + "&refreshToken=" + refreshToken.getToken();
+        // Salva i token in Redis con un codice temporaneo (TTL 2 minuti, uso singolo).
+        // I token NON vengono mai messi nell'URL per evitare esposizione in log/history/referrer.
+        String code = UUID.randomUUID().toString();
+        String redisValue = jwt + "::" + refreshToken.getToken();
+        redisTemplate.opsForValue().set(OAUTH2_CODE_PREFIX + code, redisValue, CODE_TTL);
+
+        // Manda al frontend solo il codice monouso
+        String redirectUrl = frontendUrl + "/oauth2/callback?code=" + code;
 
         getRedirectStrategy().sendRedirect(request, response, redirectUrl);
     }

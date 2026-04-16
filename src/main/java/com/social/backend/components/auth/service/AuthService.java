@@ -6,6 +6,13 @@ import com.social.backend.components.auth.dto.RegisterRequest;
 import com.social.backend.components.auth.dto.TokenRefreshResponse;
 
 public interface AuthService {
+
+    /**
+     * Scambia il codice temporaneo OAuth2 (arrivato tramite redirect URL)
+     * con i token reali (JWT + refresh). Il codice viene eliminato da Redis
+     * dopo il primo utilizzo (one-time use).
+     */
+    LoginResponse exchangeOAuth2Code(String code);
     LoginResponse login(LoginRequest request);
 
     LoginResponse register(RegisterRequest request);

@@ -16,6 +16,7 @@ import com.social.backend.components.user.dto.UserResponse;
 import com.social.backend.components.user.entity.User;
 import com.social.backend.components.user.repository.UserRepository;
 import com.social.backend.security.JwtUtil;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.DisabledException;
@@ -31,25 +32,30 @@ import java.util.UUID;
 @Service
 public class AuthServiceImpl implements AuthService {
 
+    private static final String OAUTH2_CODE_PREFIX = "oauth2:code:";
+
     private final AuthenticationManager authenticationManager;
     private final JwtUtil jwtUtil;
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final RefreshTokenService refreshTokenService;
     private final EmailService emailService;
+    private final StringRedisTemplate redisTemplate;
 
     public AuthServiceImpl(AuthenticationManager authenticationManager,
                            JwtUtil jwtUtil,
                            UserRepository userRepository,
                            PasswordEncoder passwordEncoder,
                            RefreshTokenService refreshTokenService,
-                           EmailService emailService) {
+                           EmailService emailService,
+                           StringRedisTemplate redisTemplate) {
         this.authenticationManager = authenticationManager;
         this.jwtUtil = jwtUtil;
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.refreshTokenService = refreshTokenService;
         this.emailService = emailService;
+        this.redisTemplate = redisTemplate;
     }
 
     @Override
@@ -195,6 +201,39 @@ public class AuthServiceImpl implements AuthService {
     @Transactional
     public void logout(Long userId) {
         refreshTokenService.deleteByUserId(userId);
+    }
+
+    @Override
+    public LoginResponse exchangeOAuth2Code(String code) {
+        String redisKey = OAUTH2_CODE_PREFIX + code;
+        String value = redisTemplate.opsForValue().get(redisKey);
+
+        if (value == null) {
+            throw new RuntimeException("INVALID_OR_EXPIRED_CODE");
+        }
+
+        // Uso singolo: elimina subito il codice da Redis
+        redisTemplate.delete(redisKey);
+
+        String[] parts = value.split("::");
+        if (parts.length != 2) {
+            throw new RuntimeException("INVALID_OR_EXPIRED_CODE");
+        }
+
+        String jwt = parts[0];
+        String refreshTokenValue = parts[1];
+
+        // Recupera l'utente dal JWT per costruire la risposta
+        String username = jwtUtil.extractUsername(jwt);
+        User user = userRepository.findByUsernameIgnoreCase(username)
+                .orElseThrow(() -> new RuntimeException("USER_NOT_FOUND"));
+
+        return LoginResponse.builder()
+                .token(jwt)
+                .refreshToken(refreshTokenValue)
+                .type("Bearer")
+                .user(buildUserResponse(user))
+                .build();
     }
 
     private UserResponse buildUserResponse(User user) {

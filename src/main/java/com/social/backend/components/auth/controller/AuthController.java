@@ -81,6 +81,23 @@ public class AuthController {
         }
     }
 
+    @GetMapping("/oauth2/token")
+    @Operation(
+        summary = "Scambia codice OAuth2",
+        description = "Scambia il codice temporaneo monouso (ricevuto nel redirect OAuth2) con JWT e refresh token. " +
+                      "Il codice scade dopo 2 minuti e può essere usato una sola volta."
+    )
+    public ResponseEntity<?> exchangeOAuth2Code(@RequestParam String code) {
+        try {
+            LoginResponse response = authService.exchangeOAuth2Code(code);
+            return ResponseEntity.ok(response);
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.GONE)
+                    .body(Map.of("error", "INVALID_OR_EXPIRED_CODE",
+                            "message", "Il codice è scaduto o non valido. Prova ad accedere di nuovo."));
+        }
+    }
+
     @PostMapping("/refresh")
     @Operation(summary = "Refresh Token")
     public TokenRefreshResponse refresh(@Valid @RequestBody TokenRefreshRequest request) {
