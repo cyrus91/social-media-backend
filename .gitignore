@@ -34,3 +34,6 @@ socialdb/
 
 # Optional local/test folders
 .postman/
+
+# Claude Code — impostazioni locali (specifiche della macchina, non condivise)
+.claude/settings.local.json
