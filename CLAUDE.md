@@ -80,7 +80,7 @@ WebSocket uses STOMP over SockJS at `/ws`. `WebSocketConfig` validates JWT on CO
 - `cloudinary` — production default
 - `s3` — available but not active
 
-`store()` validates images only (jpg/jpeg/png/gif, max 5 MB, content-type must start with `image/`). `storeRaw()` is used for video/audio in stories and messages — has no extension whitelist.
+`store()` validates images only (jpg/jpeg/png/gif, max 5 MB, content-type must start with `image/`). `storeRaw()` is used for video/audio in stories and voice messages — validates content-type against whitelist (`audio/webm`, `audio/ogg`, `audio/mp4`, `audio/mpeg`, `audio/wav`, `video/mp4`, `video/quicktime`, `video/webm`) and enforces 50 MB max size.
 
 ### Profiles
 
@@ -89,6 +89,19 @@ WebSocket uses STOMP over SockJS at `/ws`. `WebSocketConfig` validates JWT on CO
 | `dev` | MySQL (local) | Default if no `SPRING_PROFILES_ACTIVE` set |
 | `prod` | PostgreSQL (Neon) | `server.forward-headers-strategy=framework` for Koyeb reverse proxy |
 | `test` | H2 in-memory | `RedisConfig` excluded (`@Profile("!test")`); `TestRedisConfig` provides mocks |
+
+### Rate limiting
+
+`RateLimitInterceptor` (Redis-based, registered in `WebConfig`) protects auth endpoints:
+
+| Endpoint | Limite |
+|----------|--------|
+| `POST /api/auth/login` | 10 req / min per IP |
+| `POST /api/auth/register` | 5 req / min per IP |
+| `POST /api/auth/forgot-password` | 5 req / 15 min per IP |
+| `POST /api/auth/resend-verification` | 3 req / 15 min per IP |
+
+Chiavi Redis: `rate_limit:<path>:<ip>`. Fail-open se Redis non è raggiungibile. Risponde `429` con header `Retry-After`.
 
 ### Security config
 
