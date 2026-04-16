@@ -51,6 +51,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/comments/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/follows/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/stories/user/**").permitAll()
+                        // Swagger: accessibile solo in dev (in prod è disabilitato via properties)
                         .requestMatchers(
                                 "/v3/api-docs/**", "/swagger-ui/**",
                                 "/swagger-ui.html", "/swagger-resources/**", "/webjars/**"

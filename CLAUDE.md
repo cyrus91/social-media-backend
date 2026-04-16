@@ -107,8 +107,9 @@ Chiavi Redis: `rate_limit:<path>:<ip>`. Fail-open se Redis non è raggiungibile.
 
 `SecurityConfig` defines:
 - Public GET endpoints: `/api/users/**`, `/api/posts/**`, `/api/comments/**`, `/api/follows/**`, `/api/stories/user/**`
-- Public entirely: `/api/auth/**`, `/oauth2/**`, `/uploads/**`, `/ws/**`, Swagger
+- Public entirely: `/api/auth/**`, `/oauth2/**`, `/uploads/**`, `/ws/**`, Swagger paths
 - Public health check only: `/actuator/health` (usato da Koyeb per liveness probe)
+- Swagger è disabilitato in produzione via `application-prod.properties` (`springdoc.swagger-ui.enabled=false`)
 - `ADMIN` only: `/api/admin/**`
 - Everything else: authenticated
 
