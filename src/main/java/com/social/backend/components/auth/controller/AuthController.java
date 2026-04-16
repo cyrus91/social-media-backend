@@ -1,5 +1,6 @@
 package com.social.backend.components.auth.controller;
 
+import com.social.backend.common.exception.UnauthorizedException;
 import com.social.backend.components.auth.dto.*;
 import com.social.backend.components.auth.service.AuthService;
 import com.social.backend.components.user.entity.User;
@@ -91,7 +92,7 @@ public class AuthController {
     @Operation(summary = "Logout")
     public void logout(@AuthenticationPrincipal UserDetailsImpl userDetails) {
         if (userDetails == null) {
-            throw new RuntimeException("Utente non autenticato");
+            throw new UnauthorizedException("Utente non autenticato");
         }
         User currentUser = userDetails.getUser();
         authService.logout(currentUser.getId());

@@ -58,6 +58,7 @@ class UserControllerIntegrationTest {
                 .passwordHash(passwordEncoder.encode("password123"))
                 .bio("Sviluppatore Java")
                 .avatarUrl("https://example.com/avatar.jpg")
+                .emailVerified(true)
                 .build();
         userRepository.save(testUser);
 
@@ -159,7 +160,7 @@ class UserControllerIntegrationTest {
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.status").value(404))
                 .andExpect(jsonPath("$.error").value("Not Found"))
-                .andExpect(jsonPath("$.message").value("Utente non trovato con username: utente_inesistente"));
+                .andExpect(jsonPath("$.message").value("Utente non trovato: utente_inesistente"));
     }
 
     @Test
@@ -213,6 +214,7 @@ class UserControllerIntegrationTest {
                 .username("altro_utente")
                 .email("altro@example.com")
                 .passwordHash(passwordEncoder.encode("password123"))
+                .emailVerified(true)
                 .build();
         userRepository.save(otherUser);
 

@@ -2,6 +2,7 @@ package com.social.backend.components.email.service.impl;
 
 import com.social.backend.components.email.service.EmailService;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 
@@ -9,6 +10,7 @@ import java.util.Map;
 import java.util.List;
 
 @Service
+@Profile("!test")
 public class EmailServiceImpl implements EmailService {
 
     private final WebClient webClient;

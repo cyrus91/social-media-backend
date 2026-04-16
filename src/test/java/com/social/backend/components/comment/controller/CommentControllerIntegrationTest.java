@@ -73,6 +73,7 @@ class CommentControllerIntegrationTest {
                 .username("mario")
                 .email("mario@example.com")
                 .passwordHash(passwordEncoder.encode("password123"))
+                .emailVerified(true)
                 .build();
         userRepository.save(mario);
 
@@ -80,6 +81,7 @@ class CommentControllerIntegrationTest {
                 .username("luigi")
                 .email("luigi@example.com")
                 .passwordHash(passwordEncoder.encode("password123"))
+                .emailVerified(true)
                 .build();
         userRepository.save(luigi);
 

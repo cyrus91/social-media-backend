@@ -70,6 +70,7 @@ class LikeControllerIntegrationTest {
                 .username("mario_rossi")
                 .email("mario@example.com")
                 .passwordHash(passwordEncoder.encode("password123"))
+                .emailVerified(true)
                 .build();
         userRepository.save(testUser);
 
@@ -77,6 +78,7 @@ class LikeControllerIntegrationTest {
                 .username("luigi_verdi")
                 .email("luigi@example.com")
                 .passwordHash(passwordEncoder.encode("password123"))
+                .emailVerified(true)
                 .build();
         userRepository.save(otherUser);
 

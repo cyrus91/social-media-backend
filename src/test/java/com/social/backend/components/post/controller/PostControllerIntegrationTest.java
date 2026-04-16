@@ -67,6 +67,7 @@ class PostControllerIntegrationTest {
                 .email("mario@example.com")
                 .passwordHash(passwordEncoder.encode("password123"))
                 .bio("Sviluppatore Java")
+                .emailVerified(true)
                 .build();
         userRepository.save(testUser);
 
@@ -76,6 +77,7 @@ class PostControllerIntegrationTest {
                 .email("luigi@example.com")
                 .passwordHash(passwordEncoder.encode("password123"))
                 .bio("Designer")
+                .emailVerified(true)
                 .build();
         userRepository.save(otherUser);
 
@@ -118,7 +120,7 @@ class PostControllerIntegrationTest {
                 .andExpect(jsonPath("$.authorUsername").value("mario_rossi"))
                 .andExpect(jsonPath("$.likeCount").value(0))
                 .andExpect(jsonPath("$.commentCount").value(0))
-                .andExpect(jsonPath("$.isLikedByCurrentUser").value(false));
+                .andExpect(jsonPath("$.liked").value(false));
 
         // Verifica che il post sia stato salvato
         assertThat(postRepository.count()).isEqualTo(1);

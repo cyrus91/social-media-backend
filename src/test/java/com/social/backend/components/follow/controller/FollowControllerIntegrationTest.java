@@ -65,6 +65,7 @@ class FollowControllerIntegrationTest {
                 .username("mario")
                 .email("mario@example.com")
                 .passwordHash(passwordEncoder.encode("password123"))
+                .emailVerified(true)
                 .build();
         userRepository.save(mario);
 
@@ -72,6 +73,7 @@ class FollowControllerIntegrationTest {
                 .username("luigi")
                 .email("luigi@example.com")
                 .passwordHash(passwordEncoder.encode("password123"))
+                .emailVerified(true)
                 .build();
         userRepository.save(luigi);
 
@@ -79,6 +81,7 @@ class FollowControllerIntegrationTest {
                 .username("peach")
                 .email("peach@example.com")
                 .passwordHash(passwordEncoder.encode("password123"))
+                .emailVerified(true)
                 .build();
         userRepository.save(peach);
 

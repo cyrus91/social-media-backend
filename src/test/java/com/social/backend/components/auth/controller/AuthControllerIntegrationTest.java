@@ -56,6 +56,7 @@ class AuthControllerIntegrationTest {
                 .email("mario@example.com")
                 .passwordHash(passwordEncoder.encode("password123"))
                 .bio("Sviluppatore Java")
+                .emailVerified(true)
                 .build();
 
         userRepository.save(testUser);
@@ -76,8 +77,8 @@ class AuthControllerIntegrationTest {
                         .content(objectMapper.writeValueAsString(request)))
                 .andDo(print())
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.token").isNotEmpty())
-                .andExpect(jsonPath("$.type").value("Bearer"))
+                .andExpect(jsonPath("$.type").value("pending_verification"))
+                .andExpect(jsonPath("$.token").isEmpty())
                 .andExpect(jsonPath("$.user.username").value("nuovo_utente"))
                 .andExpect(jsonPath("$.user.email").value("nuovo@example.com"));
 

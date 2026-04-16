@@ -15,6 +15,7 @@ import io.lettuce.core.ClientOptions;
 import io.lettuce.core.SslOptions;
 
 @Configuration
+@org.springframework.context.annotation.Profile("!test")
 public class RedisConfig {
 
     @Value("${redis.host}")

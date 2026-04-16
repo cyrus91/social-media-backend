@@ -1,6 +1,13 @@
 package com.social.backend.components.user.service;
 
 import com.social.backend.common.exception.ResourceNotFoundException;
+import com.social.backend.components.auth.repository.RefreshTokenRepository;
+import com.social.backend.components.comment.repository.CommentRepository;
+import com.social.backend.components.follow.repository.FollowRepository;
+import com.social.backend.components.like.repository.LikeRepository;
+import com.social.backend.components.notification.repository.NotificationRepository;
+import com.social.backend.components.post.repository.PostRepository;
+import com.social.backend.components.storage.service.StorageService;
 import com.social.backend.components.user.dto.UpdateUserRequest;
 import com.social.backend.components.user.dto.UserResponse;
 import com.social.backend.components.user.entity.User;
@@ -13,6 +20,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import java.time.LocalDateTime;
 import java.util.Optional;
@@ -20,6 +28,7 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
@@ -33,6 +42,27 @@ class UserServiceTest {
     @Mock
     private PasswordEncoder passwordEncoder;
 
+    @Mock
+    private StorageService storageService;
+
+    @Mock
+    private FollowRepository followRepository;
+
+    @Mock
+    private PostRepository postRepository;
+
+    @Mock
+    private NotificationRepository notificationRepository;
+
+    @Mock
+    private LikeRepository likeRepository;
+
+    @Mock
+    private CommentRepository commentRepository;
+
+    @Mock
+    private RefreshTokenRepository refreshTokenRepository;
+
     @InjectMocks
     private UserServiceImpl userService;
 
@@ -40,16 +70,24 @@ class UserServiceTest {
 
     @BeforeEach
     void setUp() {
-        // Usa il builder di Lombok
+        // Imposta avatarsDir via ReflectionTestUtils (campo @Value non iniettato da Mockito)
+        ReflectionTestUtils.setField(userService, "avatarsDir", "uploads/avatars");
+
         testUser = User.builder()
                 .id(1L)
                 .username("mario_rossi")
                 .email("mario@example.com")
-                .passwordHash("hashedPassword123")  // ✅ passwordHash invece di password
+                .passwordHash("hashedPassword123")
                 .bio("Sviluppatore Java")
                 .avatarUrl("https://example.com/avatar.jpg")
+                .emailVerified(true)   // necessario: getByUsername controlla emailVerified
                 .createdAt(LocalDateTime.now())
                 .build();
+
+        // Stub comuni per countBy — evitano NullPointerException nel mapper
+        lenient().when(followRepository.countByFollowedId(anyLong())).thenReturn(0L);
+        lenient().when(followRepository.countByFollowerId(anyLong())).thenReturn(0L);
+        lenient().when(postRepository.countByAuthorId(anyLong())).thenReturn(0);
     }
 
     @Test
@@ -195,8 +233,7 @@ class UserServiceTest {
                 .passwordHash("hashedPassword")
                 .build();
 
-        // When
-        // Simula @PrePersist usando reflection per accedere al metodo protected
+        // When — simula @PrePersist
         try {
             java.lang.reflect.Method onCreateMethod = User.class.getDeclaredMethod("onCreate");
             onCreateMethod.setAccessible(true);
@@ -210,4 +247,3 @@ class UserServiceTest {
         assertThat(newUser.getCreatedAt()).isBeforeOrEqualTo(LocalDateTime.now());
     }
 }
-
