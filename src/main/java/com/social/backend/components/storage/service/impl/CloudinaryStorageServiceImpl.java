@@ -25,6 +25,13 @@ public class CloudinaryStorageServiceImpl implements StorageService {
     private static final List<String> ALLOWED_EXTENSIONS = Arrays.asList("jpg", "jpeg", "png", "gif", "webp");
     private static final long MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 
+    // Whitelist per file raw (audio/video)
+    private static final List<String> ALLOWED_RAW_CONTENT_TYPES = Arrays.asList(
+            "audio/webm", "audio/ogg", "audio/mp4", "audio/mpeg", "audio/wav",
+            "video/mp4", "video/quicktime", "video/webm"
+    );
+    private static final long MAX_RAW_FILE_SIZE = 50 * 1024 * 1024; // 50MB
+
     public CloudinaryStorageServiceImpl(
             @Value("${cloudinary.cloud-name}") String cloudName,
             @Value("${cloudinary.api-key}") String apiKey,
@@ -92,17 +99,30 @@ public class CloudinaryStorageServiceImpl implements StorageService {
 
     @Override
     public String storeRaw(MultipartFile file, String directory) {
+        if (file == null || file.isEmpty()) {
+            throw new InvalidFileException("File vuoto");
+        }
+
+        if (file.getSize() > MAX_RAW_FILE_SIZE) {
+            throw new InvalidFileException("File troppo grande. Massimo 50MB");
+        }
+
+        String contentType = file.getContentType();
+        if (contentType == null || !ALLOWED_RAW_CONTENT_TYPES.contains(contentType)) {
+            throw new InvalidFileException("Tipo file non permesso. Consentiti: audio e video (webm, ogg, mp4, mov, wav, mp3)");
+        }
+
         try {
             String fileName = UUID.randomUUID().toString();
             String publicId = directory + "/" + fileName;
             Map uploadResult = cloudinary.uploader().upload(file.getBytes(),
                     ObjectUtils.asMap(
                             "public_id", publicId,
-                            "resource_type", "raw"  // audio/video/file generico
+                            "resource_type", "raw"
                     ));
             return (String) uploadResult.get("secure_url");
         } catch (IOException e) {
-            throw new FileStorageException("Errore upload audio: " + e.getMessage(), e);
+            throw new FileStorageException("Errore upload file: " + e.getMessage(), e);
         }
     }
 

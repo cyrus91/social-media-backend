@@ -33,6 +33,16 @@ public class LocalStorageServiceImpl implements StorageService {
     private static final List<String> ALLOWED_EXTENSIONS = Arrays.asList("jpg", "jpeg", "png", "gif");
     private static final long MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 
+    // Whitelist per file raw (audio/video)
+    private static final List<String> ALLOWED_RAW_CONTENT_TYPES = Arrays.asList(
+            "audio/webm", "audio/ogg", "audio/mp4", "audio/mpeg", "audio/wav",
+            "video/mp4", "video/quicktime", "video/webm"
+    );
+    private static final List<String> ALLOWED_RAW_EXTENSIONS = Arrays.asList(
+            "webm", "ogg", "mp4", "mov", "wav", "mp3"
+    );
+    private static final long MAX_RAW_FILE_SIZE = 50 * 1024 * 1024; // 50MB
+
     @Override
     public String store(MultipartFile file, String directory) {
         // Validazione
@@ -68,11 +78,20 @@ public class LocalStorageServiceImpl implements StorageService {
         }
     }
 
-    // Salva file raw (audio, video, ecc.) senza ottimizzazione immagine
+    // Salva file raw (audio, video) senza ottimizzazione immagine
     @Override
     public String storeRaw(MultipartFile file, String directory) {
         if (file == null || file.isEmpty()) {
             throw new InvalidFileException("File vuoto");
+        }
+
+        if (file.getSize() > MAX_RAW_FILE_SIZE) {
+            throw new InvalidFileException("File troppo grande. Massimo 50MB");
+        }
+
+        String contentType = file.getContentType();
+        if (contentType == null || !ALLOWED_RAW_CONTENT_TYPES.contains(contentType)) {
+            throw new InvalidFileException("Tipo file non permesso. Consentiti: audio e video (webm, ogg, mp4, mov, wav, mp3)");
         }
 
         String originalFileName = StringUtils.cleanPath(
@@ -80,6 +99,10 @@ public class LocalStorageServiceImpl implements StorageService {
         );
 
         String extension = getFileExtension(originalFileName);
+        if (!ALLOWED_RAW_EXTENSIONS.contains(extension.toLowerCase())) {
+            throw new InvalidFileException("Estensione non permessa: " + extension);
+        }
+
         String fileName = UUID.randomUUID() + "." + extension;
 
         try {
