@@ -87,7 +87,7 @@ WebSocket uses STOMP over SockJS at `/ws`. `WebSocketConfig` validates JWT on CO
 | Profile | DB | Notes |
 |---------|-----|-------|
 | `dev` | MySQL (local) | Default if no `SPRING_PROFILES_ACTIVE` set |
-| `prod` | PostgreSQL (Neon) | `server.forward-headers-strategy=framework` for Koyeb reverse proxy |
+| `prod` | PostgreSQL (Neon) | `ddl-auto=validate` (schema non modificato), Swagger disabilitato, `server.forward-headers-strategy=framework` per Koyeb |
 | `test` | H2 in-memory | `RedisConfig` excluded (`@Profile("!test")`); `TestRedisConfig` provides mocks |
 
 ### Rate limiting
