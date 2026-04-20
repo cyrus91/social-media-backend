@@ -16,5 +16,7 @@ public interface BookmarkRepository extends JpaRepository<Bookmark, Long> {
     @Query("SELECT b FROM Bookmark b JOIN FETCH b.post JOIN FETCH b.post.author WHERE b.user.id = :userId ORDER BY b.createdAt DESC")
     Page<Bookmark> findByUserIdOrderByCreatedAtDesc(@Param("userId") Long userId, Pageable pageable);
 
+    void deleteByPostId(Long postId);
+
     long countByPostId(Long postId);
 }

@@ -483,6 +483,10 @@ public class PostServiceImpl implements PostService {
         notificationRepository.deleteByPostId(postId);
         log.info(" Notifiche eliminate");
 
+        // ELIMINA I BOOKMARK ASSOCIATI!
+        bookmarkRepository.deleteByPostId(postId);
+        log.info(" Bookmark eliminati");
+
         // ELIMINA IL SONDAGGIO SE PRESENTE (votes prima per FK)
         pollRepository.findByPostIdWithOptions(postId).ifPresent(poll -> {
             pollVoteRepository.deleteByPollId(poll.getId());
